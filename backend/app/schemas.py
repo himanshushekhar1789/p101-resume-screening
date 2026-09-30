@@ -714,9 +714,9 @@ class CandidateJobSemanticMatchResponse(BaseModel):
 
 class ScoringWeights(BaseModel):
     """Configurable weights for hybrid fusion scoring components (must be non-negative and sum to 1.0)."""
-    rule_weight: float = Field(default=0.30, ge=0.0, description="Weight for deterministic rule fit")
+    rule_weight: float = Field(default=0.30, ge=0.0, description="Weight for deterministic non-experience rule fit")
     semantic_weight: float = Field(default=0.40, ge=0.0, description="Weight for semantic similarity fit")
-    experience_weight: float = Field(default=0.20, ge=0.0, description="Weight for experience fit")
+    experience_weight: float = Field(default=0.20, ge=0.0, description="Weight for career tenure experience fit")
     llm_weight: float = Field(default=0.10, ge=0.0, description="Weight for LLM-supported fit")
 
     @model_validator(mode="after")

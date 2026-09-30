@@ -304,20 +304,21 @@ The test suite validates semantic matching across 14 dedicated test cases:
 ### 10.1 Evaluation Methodology & Mathematical Guardrails
 Phase 8 combines deterministic requirement verification, semantic similarity, verifiable experience duration, and optional LLM fit into a calibrated, explainable Candidate Fit Score:
 - **Canonical Range**: All component scores and the aggregate candidate fit score strictly reside in $[0.0, 1.0]$ (represented also as percentage $0.0\text{--}100.0\%$).
-- **Priority-Weighted Rule Fit**: Evaluates deterministic satisfaction where `must_have` requirements carry weight $1.0$ and `nice_to_have` requirements carry weight $0.5$.
+- **Rule Fit vs Experience Fit Separation**: Rule Fit strictly evaluates evaluable **non-experience deterministic requirements** ($\mathcal{R}_{\text{rule}}$: skills, education, certifications, and explicit constraints). Experience requirements ($\mathcal{R}_{\text{exp}}$) are intentionally excluded from Rule Fit and evaluated exclusively by Experience Fit to prevent double-counting.
+- **Priority-Weighted Rule Fit**: Evaluates deterministic satisfaction over $\mathcal{R}_{\text{rule}}$ where `must_have` requirements carry weight $1.0$ and `nice_to_have` requirements carry weight $0.5$.
 - **Not-Evaluable Safeguard**: Incomplete evidence (`not_evaluable`) is excluded from denominators rather than treated as a punitive failure ($0.0$).
 - **Proportional Experience Capping**: Explicit tenure duration calculates $\min(1.0, \text{candidate\_years} / \text{required\_years})$; excess experience is strictly capped at $1.0$.
-- **Dynamic Weight Renormalization**: When components are unavailable (e.g. LLM fit disabled by default), active weights are renormalized across available components so relative priorities remain preserved.
+- **Dynamic Weight Renormalization**: When components are unavailable (e.g. LLM fit disabled by default, or an experience-only job), active weights are renormalized across available components so relative priorities remain preserved.
 - **Strict Prohibition Enforcement**: Generates zero candidate rankings, zero shortlists, and zero automated hiring decisions (`hire`/`reject`).
 
 ### 10.2 Phase 8 Test Matrix (`backend/tests/test_scoring_engine.py`)
 
-The test suite validates scoring engine integrity across 19 dedicated test cases:
+The test suite validates scoring engine integrity across 20 dedicated test cases:
 
 | Test Case | Scope | Scenario | Expected Outcome |
 |---|---|---|---|
 | `test_perfect_candidate_scoring` | Core Engine | Candidate satisfies all requirements with 5+ yr experience | `rule_fit = 1.0`, `exp_fit = 1.0`, `semantic_fit > 0.90`, renormalized effective weights |
-| `test_missing_must_have_safety_signal` | Safety Signal | Candidate missing a critical must-have requirement | `all_must_haves_satisfied = False`, rule fit decreases, overall fit not forced to 0 |
+| `test_missing_must_have_safety_signal` | Safety Signal | Candidate missing a critical must-have requirement | `all_must_haves_satisfied = False`, rule fit is 0.6000, overall fit not forced to 0 |
 | `test_partial_experience_proportional` | Experience Math | Candidate has 2.0 years vs 5.0 years required | `experience_fit = 0.40` ($2.0 / 5.0$) |
 | `test_excess_experience_capped` | Experience Math | Candidate has 8.0 years vs 5.0 years required | `experience_fit = 1.0` (capped, no bonus points above 1.0) |
 | `test_not_evaluable_excluded_from_denominator` | Fairness Guardrail | Skill tenure cannot be verified from dated roles | Requirement excluded from experience denominator; `exp_fit = 1.0` |
@@ -332,6 +333,7 @@ The test suite validates scoring engine integrity across 19 dedicated test cases
 | `test_no_hiring_decision_in_response` | Scope Guardrail | Output inspected for decision terms (`hire`, `reject`) | Zero decision fields present |
 | `test_configurable_weights_sanity` | Configurability | Changing weights from semantic-heavy to rule-heavy | Score changes predictably reflecting user preferences |
 | `test_five_synthetic_score_benchmarks` | Benchmarking | Evaluates 5 synthetic candidate archetypes | Accurate distribution of scores across archetypes |
+| `test_rule_fit_and_experience_fit_separation` | Phase 8.1 Regression | Verifies rule_fit invariant under changing experience tenure | `rule_fit` unchanged when experience drops; `exp_fit` drops proportionally; exp-only job produces no artificial rule_fit |
 | `test_api_scoring_analyze_endpoint` | REST API | `POST /api/v1/scoring/analyze` with profiles | HTTP 200 with `CandidateJobScoreResponse` schema |
 | `test_api_matching_analyze_with_include_score` | REST API | `POST /api/v1/matching/analyze` with `include_score=True` | HTTP 200 with populated `score` object |
 | `test_api_matching_from_files_with_include_score` | REST API | `POST /api/v1/matching/from-files` with `include_score=True` | HTTP 200 with end-to-end PDF parsing and score calculation |
@@ -340,10 +342,10 @@ The test suite validates scoring engine integrity across 19 dedicated test cases
 
 | Archetype | Profile Summary | Rule Fit | Semantic Fit | Exp Fit | Candidate Fit Score | Must-Haves Satisfied? |
 |---|---|---|---|---|---|---|
-| **Candidate A — Strong Match** | Senior Full-Stack (Python, FastAPI, Docker, 6 yr exp, CS degree) | **1.0000** | **0.9150** | **1.0000** | **0.9622 (96.2%)** | **True** |
-| **Candidate B — Missing Critical Must-Have** | Strong Backend Dev lacking required PostgreSQL database | **0.7143** | **0.6350** | **1.0000** | **0.7424 (74.2%)** | **False** (Safety Signal) |
-| **Candidate C — Strong Skills, Low Experience** | Junior Engineer with Python/FastAPI but 1.5 yr exp (5 yr req) | **0.8571** | **0.9350** | **0.3000** | **0.7678 (76.8%)** | **False** |
-| **Candidate D — Strong Experience, Weak Skill Fit** | 10 yr Veteran Engineer from unrelated stack (Java/Oracle) | **0.3333** | **0.1750** | **1.0000** | **0.4111 (41.1%)** | **False** |
+| **Candidate A — Strong Match** | Senior Full-Stack (Python, FastAPI, Docker, 6 yr exp) | **1.0000** | **0.9240** | **1.0000** | **0.9661 (96.6%)** | **True** |
+| **Candidate B — Missing Critical Must-Have** | Strong Backend Dev lacking required PostgreSQL database | **0.6000** | **0.5900** | **1.0000** | **0.6844 (68.4%)** | **False** (Safety Signal) |
+| **Candidate C — Strong Skills, Low Experience** | Junior Engineer with Python/FastAPI but 1.5 yr exp (5 yr req) | **1.0000** | **0.9350** | **0.3000** | **0.7728 (77.3%)** | **False** |
+| **Candidate D — Strong Experience, Weak Skill Fit** | 10 yr Veteran Engineer from unrelated stack (0/2 required skills) | **0.0000** | **0.1750** | **1.0000** | **0.3000 (30.0%)** | **False** |
 | **Candidate E — Sparse Resume** | Resume with Python skill, but 2 unverified tenure requirements | **1.0000** | **0.8000** | **N/A** | **0.8857 (88.6%)** | **True** (2 not evaluable) |
 
 ### 10.4 Configurable Weights Sanity Verification

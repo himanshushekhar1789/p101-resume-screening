@@ -183,8 +183,11 @@ def test_missing_must_have_safety_signal(scoring_engine):
 
     assert score_result.all_must_haves_satisfied is False
     assert score_result.rule_fit_score < 1.0
-    # Rule fit calculation: (1.0*1.0 + 0.0*1.0 + 1.0*0.5 + 1.0*1.0) / (1.0 + 1.0 + 0.5 + 1.0) = 2.5 / 3.5 = 0.7143
-    assert abs(score_result.rule_fit_score - 0.7143) < 0.001
+    # Rule fit evaluates non-experience requirements:
+    # Python (must-have, matched = 1.0 * 1.0), PostgreSQL (must-have, unmatched = 0.0 * 1.0), Docker (nice-to-have, matched = 1.0 * 0.5)
+    # Sum weighted values = 1.5, sum priority weights = 2.5 -> rule_fit = 1.5 / 2.5 = 0.6000
+    assert abs(score_result.rule_fit_score - 0.6000) < 0.001
+    assert score_result.experience_fit_score == 1.0
     # Crucially, candidate_fit_score > 0.0 (not artificially zeroed out)
     assert score_result.candidate_fit_score > 0.50
 
@@ -551,7 +554,87 @@ def test_five_synthetic_score_benchmarks(scoring_engine):
 
 
 # ---------------------------------------------------------------------------
-# Test 17 — REST API Endpoints
+# Test 17 — Rule Fit & Experience Fit Separation (Phase 8.1 Regression Test)
+# ---------------------------------------------------------------------------
+def test_rule_fit_and_experience_fit_separation(scoring_engine):
+    """
+    Regression Test for Phase 8.1:
+    Demonstrates that experience requirements do NOT affect rule_fit:
+    1. Candidate with matched skills (Python, FastAPI) and sufficient experience (3.0 yrs / 3.0 yrs):
+       - rule_fit == 1.0 (evaluated exclusively on non-experience requirements)
+       - experience_fit == 1.0 (evaluated exclusively on career tenure)
+    2. Change candidate experience from sufficient to insufficient (1.5 yrs / 3.0 yrs):
+       - rule_fit remains unchanged at exactly 1.0
+       - experience_fit decreases to 0.50 (1.5 / 3.0)
+       - candidate_fit_score changes ONLY because experience_fit changed
+    3. An experience requirement alone does NOT produce an artificial rule_fit score.
+    """
+    # 1. Candidate with sufficient experience
+    matches_sufficient = [
+        make_mock_match("Python", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.90),
+        make_mock_match("FastAPI", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.90),
+        make_mock_match("Experience", "experience", "must_have", MatchStatus.MATCHED, minimum_years=3.0, candidate_years=3.0),
+    ]
+    resp_sufficient = CandidateJobMatchResponse(
+        matches=matches_sufficient,
+        summary=MatchingSummary(total_requirements=3, matched=3, must_have_total=3, must_have_matched=3),
+    )
+    score_sufficient = scoring_engine.compute_score(resp_sufficient)
+
+    assert score_sufficient.rule_fit_score == 1.0
+    assert score_sufficient.experience_fit_score == 1.0
+    assert score_sufficient.all_must_haves_satisfied is True
+
+    # 2. Change ONLY candidate experience to insufficient (1.5 years instead of 3.0 years)
+    matches_insufficient = [
+        make_mock_match("Python", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.90),
+        make_mock_match("FastAPI", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.90),
+        make_mock_match("Experience", "experience", "must_have", MatchStatus.PARTIAL, MatchMethod.EXPERIENCE_INSUFFICIENT, minimum_years=3.0, candidate_years=1.5),
+    ]
+    resp_insufficient = CandidateJobMatchResponse(
+        matches=matches_insufficient,
+        summary=MatchingSummary(total_requirements=3, matched=2, partial=1, must_have_total=3, must_have_matched=2),
+    )
+    score_insufficient = scoring_engine.compute_score(resp_insufficient)
+
+    # CRITICAL INVARIANT: rule_fit remains 1.0 because non-experience skills are unchanged
+    assert score_insufficient.rule_fit_score == 1.0
+    assert score_insufficient.rule_fit_score == score_sufficient.rule_fit_score
+
+    # Experience fit dropped proportionally from 1.0 to 0.50
+    assert score_insufficient.experience_fit_score == 0.50
+    assert score_insufficient.experience_fit_score < score_sufficient.experience_fit_score
+
+    # Candidate fit score dropped solely due to experience_fit
+    assert score_insufficient.candidate_fit_score < score_sufficient.candidate_fit_score
+
+    # Verify the difference matches the experience weight contribution
+    exp_weight = score_sufficient.components.experience_fit.effective_weight
+    expected_diff = round((1.0 - 0.50) * exp_weight, 4)
+    actual_diff = round(score_sufficient.candidate_fit_score - score_insufficient.candidate_fit_score, 4)
+    assert abs(actual_diff - expected_diff) < 0.001
+
+    # 3. Job with ONLY experience requirement (no non-experience requirements)
+    matches_exp_only = [
+        make_mock_match("Experience", "experience", "must_have", MatchStatus.MATCHED, minimum_years=3.0, candidate_years=3.0),
+    ]
+    resp_exp_only = CandidateJobMatchResponse(
+        matches=matches_exp_only,
+        summary=MatchingSummary(total_requirements=1, matched=1, must_have_total=1, must_have_matched=1),
+    )
+    score_exp_only = scoring_engine.compute_score(resp_exp_only)
+
+    # rule_fit must NOT be artificially scored
+    assert score_exp_only.components.rule_fit.available is False
+    assert score_exp_only.rule_fit_score is None
+    assert score_exp_only.components.rule_fit.effective_weight == 0.0
+    # Experience fit handles the requirement
+    assert score_exp_only.experience_fit_score == 1.0
+    assert score_exp_only.candidate_fit_score == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Test 18 — REST API Endpoints
 # ---------------------------------------------------------------------------
 def test_api_scoring_analyze_endpoint(client):
     """

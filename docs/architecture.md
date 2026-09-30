@@ -479,16 +479,27 @@ In strict compliance with decision-support principles:
 
 Every component score is strictly normalized to the range $[0.0, 1.0]$:
 
+```text
+Rule Fit       → Deterministic non-experience requirements (skills, education, certifications, other)
+Semantic Fit   → Dense vector semantic similarity (all-MiniLM-L6-v2)
+Experience Fit → Career tenure / required years proportionality
+LLM Fit        → Optional qualitative assessment (disabled by default)
+```
+
 1. **Rule Fit ($S_{\text{rule}}$)**:
-   - Evaluates deterministic requirement satisfaction from Phase 6.
+   - Evaluates evaluable **non-experience deterministic requirements** (skills, education, certifications, and other constraints) from Phase 6. Experience requirements are intentionally excluded from Rule Fit because career tenure is represented separately and proportionally by the Experience Fit component.
+   - Explicit partition:
+     - $\mathcal{R}_{\text{rule}}$: Set of evaluable non-experience requirements.
+     - $\mathcal{R}_{\text{exp}}$: Set of experience requirements (handled exclusively by Experience Fit).
    - Priority-aware weighting: `must_have` requirements carry weight $1.0$, whereas `nice_to_have` requirements carry weight $0.5$.
    - Status mapping:
      - `matched`: $1.0$
      - `partial`: $0.5$
      - `unmatched`: $0.0$
      - `not_evaluable`: **Excluded from denominator** under default policy (`exclude`), preventing missing candidate evidence from being penalized as failure.
-   - Formula:
-     $$S_{\text{rule}} = \frac{\sum_{i \in \text{evaluable}} (\text{status\_value}_i \times \text{priority\_weight}_i)}{\sum_{i \in \text{evaluable}} \text{priority\_weight}_i}$$
+   - Formula (over $\mathcal{R}_{\text{rule}}$ only):
+     $$S_{\text{rule}} = \frac{\sum_{r \in \mathcal{R}_{\text{rule}}} (\text{status\_value}_r \times \text{priority\_weight}_r)}{\sum_{r \in \mathcal{R}_{\text{rule}}} \text{priority\_weight}_r}$$
+   - If $\mathcal{R}_{\text{rule}} = \emptyset$ (e.g. a job posting specifying only tenure requirements), Rule Fit is marked `available = False` ($S_{\text{rule}} = \text{None}$) and its weight is dynamically renormalized to prevent an experience requirement alone from artificially producing a Rule Fit score.
 
 2. **Semantic Fit ($S_{\text{semantic}}$)**:
    - Aggregates raw cosine similarities from Phase 7 without recomputing embeddings.
@@ -498,7 +509,7 @@ Every component score is strictly normalized to the range $[0.0, 1.0]$:
    - If semantic matching is disabled or candidate provides no evaluable text, marked `available = False` and dynamically renormalized.
 
 3. **Experience Fit ($S_{\text{experience}}$)**:
-   - Evaluates verifiable non-overlapping career and skill tenure strictly from Phase 6 evidence.
+   - Evaluates verifiable non-overlapping career and skill tenure strictly from Phase 6 evidence over $\mathcal{R}_{\text{exp}}$.
    - Never uses embeddings for temporal duration.
    - Proportional fulfillment for explicit year requirements:
      $$S_{\text{indiv}} = \min\left(1.0, \frac{\text{candidate\_years}}{\text{required\_years}}\right)$$

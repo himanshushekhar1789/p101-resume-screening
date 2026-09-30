@@ -438,7 +438,7 @@ Computes an explainable, multi-layer hybrid candidate-fit score combining determ
       "effective_weight": 0.3333,
       "weighted_contribution": 0.2857,
       "available": true,
-      "explanation": "Rule fit evaluated 7 requirements (5 must-have, 2 nice-to-have). Satisfied 6 fully, 0 partially, 1 unmatched (0 not evaluable).",
+      "explanation": "Rule fit evaluated 7 non-experience requirement(s) (5 must-have, 2 nice-to-have). Satisfied 6 fully, 0 partially, 1 unmatched (0 not evaluable).",
       "evaluable_count": 7,
       "not_evaluable_count": 0
     },

@@ -90,6 +90,10 @@ class ScoringEngine:
     ) -> Tuple[ScoreComponent, List[RequirementScoreContribution]]:
         """
         Calculates priority-weighted deterministic requirement satisfaction from Phase 6.
+        - Evaluates applicable non-experience deterministic requirements:
+          skills, education, certifications, and other deterministic requirements.
+        - Experience requirements (type == "experience") are strictly excluded
+          because career tenure / required years is represented exclusively by Experience Fit.
         - must_have weight: 1.0
         - nice_to_have weight: 0.5
         - matched: 1.0
@@ -112,13 +116,41 @@ class ScoringEngine:
             req = m.requirement
             priority = req.priority or "must_have"
             priority_weight = 1.0 if priority == "must_have" else 0.5
+            status = m.status
+
+            # Check semantic similarity if attached
+            sem_sim: Optional[float] = None
+            if m.semantic_result and m.semantic_result.similarity is not None:
+                sem_sim = round(m.semantic_result.similarity, 4)
+
+            # ARCHITECTURAL RULE (Phase 8.1):
+            # Rule Fit evaluates evaluable non-experience deterministic requirements.
+            # Experience requirements (type == "experience") are strictly excluded from Rule Fit
+            # because career tenure / required years is represented independently by Experience Fit.
+            if req.type == "experience":
+                is_evaluable = (status != MatchStatus.NOT_EVALUABLE)
+                contributions.append(
+                    RequirementScoreContribution(
+                        requirement_id=f"{req.type}_{req.name}".replace(" ", "_"),
+                        name=req.name,
+                        type=req.type,
+                        priority=priority,
+                        status=status,
+                        status_value=None,
+                        priority_weight=priority_weight,
+                        weighted_value=None,
+                        evaluable=is_evaluable,
+                        semantic_similarity=sem_sim,
+                        reason=f"Excluded from rule_fit (handled independently by experience_fit): {m.reason or ''}".strip(),
+                    )
+                )
+                continue
 
             if priority == "must_have":
                 must_have_count += 1
             else:
                 nice_to_have_count += 1
 
-            status = m.status
             evaluable = True
             status_value: Optional[float] = None
             weighted_value: Optional[float] = None
@@ -146,11 +178,6 @@ class ScoringEngine:
                 evaluable_weighted_values.append(weighted_val)
                 evaluable_priority_weights.append(priority_weight)
 
-            # Check semantic similarity if attached
-            sem_sim: Optional[float] = None
-            if m.semantic_result and m.semantic_result.similarity is not None:
-                sem_sim = round(m.semantic_result.similarity, 4)
-
             contributions.append(
                 RequirementScoreContribution(
                     requirement_id=f"{req.type}_{req.name}".replace(" ", "_"),
@@ -175,21 +202,21 @@ class ScoringEngine:
             score = round(min(1.0, max(0.0, raw_score)), 4)
             available = True
             explanation = (
-                f"Rule fit evaluated {evaluable_count} requirements ({must_have_count} must-have, "
+                f"Rule fit evaluated {evaluable_count} non-experience requirement(s) ({must_have_count} must-have, "
                 f"{nice_to_have_count} nice-to-have). Satisfied {matched_count} fully, {partial_count} partially, "
                 f"{unmatched_count} unmatched ({not_evaluable_count} not evaluable)."
             )
         else:
-            score = 0.0
-            available = (len(matches) == 0)
-            explanation = "No evaluable requirements found to compute rule fit."
+            score = None
+            available = False
+            explanation = "No evaluable non-experience requirements found to compute rule fit."
 
         component = ScoreComponent(
             name="rule_fit",
-            score=score if available else None,
+            score=score,
             configured_weight=rule_weight,
-            effective_weight=rule_weight,
-            weighted_contribution=round(score * rule_weight, 4) if available else 0.0,
+            effective_weight=rule_weight if available else 0.0,
+            weighted_contribution=round(score * rule_weight, 4) if (available and score is not None) else 0.0,
             available=available,
             explanation=explanation,
             evaluable_count=evaluable_count,

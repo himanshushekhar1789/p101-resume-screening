@@ -503,13 +503,13 @@ curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
 Phase 8 introduces an explainable, configurable **Multi-Layer Hybrid Fusion Scoring Engine** that combines deterministic requirement satisfaction, semantic similarity, and experience proportionality:
 
 - **Four Component Scores (Normalized $[0.0, 1.0]$)**:
-  1. **`rule_fit`**: Deterministic requirement fulfillment evaluated from Phase 6. Priority-weighted (`must_have` = 1.0, `nice_to_have` = 0.5) with transparent status mapping:
+  1. **`rule_fit`**: Evaluates evaluable **non-experience deterministic requirements** ($\mathcal{R}_{\text{rule}}$: skills, education, certifications, and explicit constraints) from Phase 6. Experience requirements ($\mathcal{R}_{\text{exp}}$) are intentionally excluded because career tenure is represented separately and proportionally by `experience_fit`. Priority-weighted (`must_have` = 1.0, `nice_to_have` = 0.5) over $\mathcal{R}_{\text{rule}}$:
      - `matched` $\rightarrow$ 1.0
      - `partial` $\rightarrow$ 0.5
      - `unmatched` $\rightarrow$ 0.0
      - `not_evaluable` $\rightarrow$ Excluded from both numerator and denominator.
   2. **`semantic_fit`**: Priority-weighted average of continuous raw cosine similarity scores ($[0.0, 1.0]$) across semantically evaluable requirements from Phase 7 (`must_have` = 1.0, `nice_to_have` = 0.5).
-  3. **`experience_fit`**: Proportional career tenure ratio ($\min(\text{candidate\_years} / \text{required\_years}, 1.0)$), capped strictly at 1.0 to prevent unfairly rewarding overqualified candidates; excluded when no experience requirements exist.
+  3. **`experience_fit`**: Proportional career tenure ratio over $\mathcal{R}_{\text{exp}}$ ($\min(\text{candidate\_years} / \text{required\_years}, 1.0)$), capped strictly at 1.0 to prevent unfairly rewarding overqualified candidates; excluded when no experience requirements exist.
   4. **`llm_fit`**: Qualitative evaluation placeholder (defaults to `None` / `available = False` for deterministic, zero-cost execution).
 - **Default Fusion Weights**:
   - `rule_fit_weight`: **0.30**
