@@ -1,5 +1,6 @@
 from functools import lru_cache
 from typing import Optional
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -40,11 +41,47 @@ class Settings(BaseSettings):
     semantic_high_threshold: float = 0.75
     semantic_medium_threshold: float = 0.55
 
-    # Configurable Scoring Weights (Must sum to ~1.0)
-    weight_rule_fit: float = 0.30
-    weight_semantic_fit: float = 0.40
-    weight_experience_fit: float = 0.20
-    weight_llm_fit: float = 0.10
+    # Configurable Scoring Weights (Must sum to ~1.0, Phase 8)
+    weight_rule_fit: float = Field(
+        default=0.30,
+        validation_alias=AliasChoices("weight_rule_fit", "rule_fit_weight", "rule_weight"),
+        description="Weight for deterministic rule fit component",
+    )
+    weight_semantic_fit: float = Field(
+        default=0.40,
+        validation_alias=AliasChoices("weight_semantic_fit", "semantic_fit_weight", "semantic_weight"),
+        description="Weight for semantic embedding fit component",
+    )
+    weight_experience_fit: float = Field(
+        default=0.20,
+        validation_alias=AliasChoices("weight_experience_fit", "experience_fit_weight", "experience_weight"),
+        description="Weight for verifiable experience fit component",
+    )
+    weight_llm_fit: float = Field(
+        default=0.10,
+        validation_alias=AliasChoices("weight_llm_fit", "llm_fit_weight", "llm_weight"),
+        description="Weight for LLM-supported fit component",
+    )
+    not_evaluable_policy: str = Field(
+        default="exclude",
+        description="Policy for handling not_evaluable requirements in score calculation ('exclude' or 'zero')",
+    )
+
+    @property
+    def rule_fit_weight(self) -> float:
+        return self.weight_rule_fit
+
+    @property
+    def semantic_fit_weight(self) -> float:
+        return self.weight_semantic_fit
+
+    @property
+    def experience_fit_weight(self) -> float:
+        return self.weight_experience_fit
+
+    @property
+    def llm_fit_weight(self) -> float:
+        return self.weight_llm_fit
 
     # Privacy / Masked Mode Default
     default_masked_mode: bool = False

@@ -498,7 +498,75 @@ curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
 
 ---
 
-## 9. Project Directory Structure
+## 9. Multi-Layer Hybrid Fusion Scoring Engine (Phase 8)
+
+Phase 8 introduces an explainable, configurable **Multi-Layer Hybrid Fusion Scoring Engine** that combines deterministic requirement satisfaction, semantic similarity, and experience proportionality:
+
+- **Four Component Scores (Normalized $[0.0, 1.0]$)**:
+  1. **`rule_fit`**: Deterministic requirement fulfillment evaluated from Phase 6. Priority-weighted (`must_have` = 1.0, `nice_to_have` = 0.5) with transparent status mapping:
+     - `matched` $\rightarrow$ 1.0
+     - `partial` $\rightarrow$ 0.5
+     - `unmatched` $\rightarrow$ 0.0
+     - `not_evaluable` $\rightarrow$ Excluded from both numerator and denominator.
+  2. **`semantic_fit`**: Priority-weighted average of continuous raw cosine similarity scores ($[0.0, 1.0]$) across semantically evaluable requirements from Phase 7 (`must_have` = 1.0, `nice_to_have` = 0.5).
+  3. **`experience_fit`**: Proportional career tenure ratio ($\min(\text{candidate\_years} / \text{required\_years}, 1.0)$), capped strictly at 1.0 to prevent unfairly rewarding overqualified candidates; excluded when no experience requirements exist.
+  4. **`llm_fit`**: Qualitative evaluation placeholder (defaults to `None` / `available = False` for deterministic, zero-cost execution).
+- **Default Fusion Weights**:
+  - `rule_fit_weight`: **0.30**
+  - `semantic_fit_weight`: **0.40**
+  - `experience_fit_weight`: **0.20**
+  - `llm_fit_weight`: **0.10**
+- **Dynamic Weight Renormalization**:
+  When a component is unavailable or non-evaluable (e.g., qualitative LLM fit disabled or no experience requirement), its weight dynamically resets to 0.0, and remaining active weights are automatically renormalized to sum to 1.0:
+  $$w'_i = \frac{w_i}{\sum_{j \in \text{active}} w_j}, \quad \text{Final Fit Score} = \sum_{i \in \text{active}} w'_i \times s_i$$
+- **Independent Safety Signal (`all_must_haves_satisfied`)**:
+  Tracked as an uncompromised boolean safety gate. A candidate with high nice-to-have fit cannot mask missing mandatory qualifications.
+- **Strict Guardrails**:
+  - **Zero Candidate Ranking**: Evaluates single candidate-job pairs without global ordering or candidate comparison.
+  - **Zero Shortlists or Top-N Cuts**: No arbitrary cutoffs or candidate filtering.
+  - **Zero Hiring Decisions**: No automated "hire" or "reject" judgments; acts purely as an objective decision-support signal.
+  - **100% Deterministic & Reproducible**: Identical inputs always produce identical floating-point scores.
+
+### Scoring API Examples
+
+#### 1. Analyze Fit Score Directly (`POST /api/v1/scoring/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/scoring/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... },
+       "custom_weights": {
+         "rule_fit_weight": 0.40,
+         "semantic_fit_weight": 0.40,
+         "experience_fit_weight": 0.20,
+         "llm_fit_weight": 0.0
+       }
+     }'
+```
+
+#### 2. Unified Requirement Matching with Fit Score (`POST /api/v1/matching/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... },
+       "include_semantic": true,
+       "include_score": true
+     }'
+```
+
+#### 3. Match and Score Directly from Files (`POST /api/v1/matching/from-files`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/from-files?include_semantic=true&include_score=true" \
+     -F "resume_file=@data/sample/resumes/synthetic_software_engineer.pdf" \
+     -F "jd_file=@data/sample/job_descriptions/backend_developer_jd.pdf"
+```
+
+---
+
+## 10. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -529,7 +597,8 @@ p101-resume-screening/
 │   │   │       ├── resumes.py         # Parse & Extract endpoints (/parse, /extract)
 │   │   │       ├── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
 │   │   │       ├── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
-│   │   │       └── matching.py        # Matching endpoints (/analyze, /from-files, /semantic)
+│   │   │       ├── matching.py        # Matching endpoints (/analyze, /from-files, /semantic)
+│   │   │       └── scoring.py         # Hybrid fit scoring endpoint (/analyze)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -556,6 +625,7 @@ p101-resume-screening/
 │   │       ├── matching_engine.py     # Deterministic candidate-job requirement matching
 │   │       ├── embedding_service.py   # Dense vector embeddings and in-memory cache
 │   │       ├── semantic_matcher.py    # Semantic matching and false-positive protection matrix
+│   │       ├── scoring_engine.py      # Multi-layer hybrid fusion scoring engine
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -572,7 +642,8 @@ p101-resume-screening/
 │       ├── test_jd_analyzer.py        # Job description analysis and API tests
 │       ├── test_skill_normalizer.py   # Skill normalization and taxonomy tests
 │       ├── test_matching_engine.py    # Deterministic matching and API tests
-│       └── test_semantic_matching.py  # Embedding, threshold, caching, and semantic match tests
+│       ├── test_semantic_matching.py  # Embedding, threshold, caching, and semantic match tests
+│       └── test_scoring_engine.py     # Hybrid fusion scoring, priority, capping & API tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -584,7 +655,7 @@ p101-resume-screening/
 
 ---
 
-## 10. Getting Started
+## 11. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -629,6 +700,11 @@ EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
 SEMANTIC_MATCHING_ENABLED=True
 SEMANTIC_HIGH_THRESHOLD=0.75
 SEMANTIC_MEDIUM_THRESHOLD=0.55
+RULE_FIT_WEIGHT=0.30
+SEMANTIC_FIT_WEIGHT=0.40
+EXPERIENCE_FIT_WEIGHT=0.20
+LLM_FIT_WEIGHT=0.10
+NOT_EVALUABLE_POLICY=exclude
 ```
 
 ### Step 5: Run the Backend Application
@@ -646,7 +722,7 @@ pytest backend/tests/ -v
 
 ---
 
-## 11. Development Roadmap & Incremental Phases
+## 12. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
@@ -655,7 +731,7 @@ pytest backend/tests/ -v
 - [x] **Phase 5: Skill Normalization & Taxonomy Mapping**
 - [x] **Phase 6: Candidate ↔ Job Requirement Matching Engine**
 - [x] **Phase 7: Embedding-Based Semantic Matching**
-- [ ] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
+- [x] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
 - [ ] **Phase 9: Skill-Gap Analysis & Evidence Grounding**
 - [ ] **Phase 10: LLM Explanations & Personalized Recommendations**
 - [ ] **Phase 11: Frontend Web Dashboard**

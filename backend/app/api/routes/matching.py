@@ -3,12 +3,13 @@ REST API routes for Candidate ↔ Job Requirement Matching Engine (Phase 6).
 """
 
 import logging
-from typing import Optional
+from typing import Optional, Union
 from fastapi import APIRouter, File, UploadFile, HTTPException, status
 
 from backend.app.schemas import (
     MatchingAnalyzeRequest,
     CandidateJobMatchResponse,
+    CandidateJobMatchWithScoreResponse,
     CandidateJobSemanticMatchResponse,
 )
 from backend.app.services.matching_engine import MatchingEngine
@@ -30,19 +31,19 @@ router = APIRouter(prefix="/matching", tags=["Candidate ↔ Job Matching"])
 
 @router.post(
     "/analyze",
-    response_model=CandidateJobMatchResponse,
+    response_model=Union[CandidateJobMatchWithScoreResponse, CandidateJobMatchResponse],
     status_code=status.HTTP_200_OK,
     summary="Match Candidate Profile against Job Profile",
     description=(
         "Performs deterministic, requirement-by-requirement evaluation of a candidate profile "
         "against job description requirements, returning structured match status, match method, "
-        "evidence citations, and requirement breakdown. Optionally includes Phase 7 semantic matching."
+        "evidence citations, and requirement breakdown. Optionally includes Phase 7 semantic matching and Phase 8 scoring."
     ),
 )
 async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
     """
     Accepts structured CandidateProfile and JobProfile, evaluates all requirements,
-    and returns a CandidateJobMatchResponse.
+    and returns a CandidateJobMatchResponse (or CandidateJobMatchWithScoreResponse if include_score=True).
     """
     try:
         engine = MatchingEngine()
@@ -53,6 +54,25 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
             job_id=payload.job_id,
             include_semantic=payload.include_semantic or False,
         )
+
+        if payload.include_score:
+            from backend.app.services.scoring_engine import get_scoring_engine
+            scoring_engine = get_scoring_engine()
+            score_res = scoring_engine.compute_score(
+                match_response=result,
+                weights=payload.scoring_weights,
+                llm_fit_score=payload.llm_fit_score,
+            )
+            return CandidateJobMatchWithScoreResponse(
+                candidate_id=result.candidate_id,
+                job_id=result.job_id,
+                job_title=result.job_title,
+                matches=result.matches,
+                summary=result.summary,
+                semantic_matches=result.semantic_matches,
+                score=score_res,
+            )
+
         return result
     except Exception as e:
         logger.error(f"Error during candidate-job matching: {str(e)}")
@@ -101,7 +121,7 @@ async def semantic_match_endpoint(payload: MatchingAnalyzeRequest):
 
 @router.post(
     "/from-files",
-    response_model=CandidateJobMatchResponse,
+    response_model=Union[CandidateJobMatchWithScoreResponse, CandidateJobMatchResponse],
     status_code=status.HTTP_200_OK,
     summary="End-to-End matching from uploaded resume and JD documents",
     description=(
@@ -113,6 +133,7 @@ async def match_from_files_endpoint(
     resume_file: UploadFile = File(..., description="Candidate resume (PDF or DOCX)"),
     job_file: UploadFile = File(..., description="Job description (PDF or DOCX)"),
     include_semantic: bool = False,
+    include_score: bool = False,
 ):
     """
     Convenience endpoint accepting uploaded documents for both resume and JD,
@@ -135,13 +156,29 @@ async def match_from_files_endpoint(
         job_profile = await analyze_job_description(parsed_job.text)
 
         engine = MatchingEngine()
-        return engine.match_candidate_to_job(
+        match_result = engine.match_candidate_to_job(
             candidate=candidate_profile,
             job=job_profile,
             candidate_id=resume_file.filename,
             job_id=job_file.filename,
             include_semantic=include_semantic,
         )
+
+        if include_score:
+            from backend.app.services.scoring_engine import get_scoring_engine
+            scoring_engine = get_scoring_engine()
+            score_res = scoring_engine.compute_score(match_response=match_result)
+            return CandidateJobMatchWithScoreResponse(
+                candidate_id=match_result.candidate_id,
+                job_id=match_result.job_id,
+                job_title=match_result.job_title,
+                matches=match_result.matches,
+                summary=match_result.summary,
+                semantic_matches=match_result.semantic_matches,
+                score=score_res,
+            )
+
+        return match_result
     except (UnsupportedFormatError, EmptyDocumentError, CorruptDocumentError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except ScannedDocumentError as e:

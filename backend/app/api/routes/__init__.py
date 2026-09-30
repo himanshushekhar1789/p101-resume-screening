@@ -4,6 +4,7 @@ from backend.app.api.routes.resumes import router as resumes_router
 from backend.app.api.routes.jobs import router as jobs_router
 from backend.app.api.routes.skills import router as skills_router
 from backend.app.api.routes.matching import router as matching_router
+from backend.app.api.routes.scoring import router as scoring_router
 
 api_router = APIRouter()
 api_router.include_router(health_router)
@@ -11,5 +12,7 @@ api_router.include_router(resumes_router)
 api_router.include_router(jobs_router)
 api_router.include_router(skills_router)
 api_router.include_router(matching_router)
+api_router.include_router(scoring_router)
 
 __all__ = ["api_router"]
+

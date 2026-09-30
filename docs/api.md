@@ -370,13 +370,14 @@ Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
 ```
 
 ### `POST /matching/from-files`
-Executes end-to-end matching directly from uploaded resume and JD documents (`.pdf`, `.docx`, `.txt`), with optional semantic embedding evaluation.
+Executes end-to-end matching directly from uploaded resume and JD documents (`.pdf`, `.docx`), with optional semantic embedding and hybrid scoring evaluation.
 
 - **Request**: Multipart Form Data:
   - `resume_file`: UploadFile (PDF or DOCX)
-  - `jd_file`: UploadFile (PDF, DOCX, or TXT)
+  - `job_file`: UploadFile (PDF or DOCX)
   - `include_semantic`: Query Parameter (bool, default `false`)
-- **Response (200 OK)**: `CandidateJobMatchResponse` with detailed requirement evaluations, deterministic summary, and optional semantic matches.
+  - `include_score`: Query Parameter (bool, default `false`)
+- **Response (200 OK)**: `CandidateJobMatchResponse` (or `CandidateJobMatchWithScoreResponse` if `include_score=true`).
 
 ### `POST /matching/semantic` (Phase 7)
 Evaluates candidate background against job requirements using dense vector embeddings (`all-MiniLM-L6-v2`) and cosine similarity.
@@ -389,43 +390,119 @@ Evaluates candidate background against job requirements using dense vector embed
 }
 ```
 
+- **Response (200 OK)**: `CandidateJobSemanticMatchResponse`
+
+---
+
+## 7. Hybrid Fusion Scoring Engine (Phase 8)
+
+### `POST /scoring/analyze`
+Computes an explainable, multi-layer hybrid candidate-fit score combining deterministic rule fit, semantic similarity, verifiable experience, and optional LLM fit.
+
+- **Request Body (JSON)**:
+```json
+{
+  "candidate": { ... },     // CandidateProfile
+  "job": { ... },           // JobProfile
+  "candidate_id": "cand_101",
+  "job_id": "job_202",
+  "include_semantic": true,
+  "weights": {              // Optional custom weights (must sum to 1.0)
+    "rule_weight": 0.30,
+    "semantic_weight": 0.40,
+    "experience_weight": 0.20,
+    "llm_weight": 0.10
+  },
+  "llm_fit_score": null     // Optional explicit LLM score [0.0, 1.0]
+}
+```
+
 - **Response (200 OK)**:
 ```json
 {
-  "matches": [
-    {
-      "requirement_id": "skill_FastAPI",
-      "requirement_name": "FastAPI",
-      "similarity_score": 0.8124,
-      "semantic_status": "semantic_match",
-      "matched_candidate_text": "Role: Senior Backend Engineer at CloudCorp: Built REST APIs with FastAPI",
-      "confidence": "high",
-      "explanation": "High semantic similarity (0.81) between requirement 'FastAPI' and candidate evidence 'Role: Senior Backend Engineer at CloudCorp: Built REST APIs with FastAPI'."
+  "candidate_id": "cand_101",
+  "candidate_name": "David Vance",
+  "job_id": "job_202",
+  "job_title": "Senior Backend Engineer",
+  "candidate_fit_score": 0.8124,
+  "percentage_score": 81.24,
+  "rule_fit_score": 0.8571,
+  "semantic_fit_score": 0.7850,
+  "experience_fit_score": 1.0000,
+  "llm_fit_score": null,
+  "components": {
+    "rule_fit": {
+      "name": "rule_fit",
+      "score": 0.8571,
+      "configured_weight": 0.30,
+      "effective_weight": 0.3333,
+      "weighted_contribution": 0.2857,
+      "available": true,
+      "explanation": "Rule fit evaluated 7 requirements (5 must-have, 2 nice-to-have). Satisfied 6 fully, 0 partially, 1 unmatched (0 not evaluable).",
+      "evaluable_count": 7,
+      "not_evaluable_count": 0
     },
+    "semantic_fit": {
+      "name": "semantic_fit",
+      "score": 0.7850,
+      "configured_weight": 0.40,
+      "effective_weight": 0.4444,
+      "weighted_contribution": 0.3489,
+      "available": true,
+      "explanation": "Semantic fit evaluated 6 requirements using dense vector similarity yielding an average weighted similarity of 0.79 (0 not evaluable).",
+      "evaluable_count": 6,
+      "not_evaluable_count": 0
+    },
+    "experience_fit": {
+      "name": "experience_fit",
+      "score": 1.0000,
+      "configured_weight": 0.20,
+      "effective_weight": 0.2222,
+      "weighted_contribution": 0.2222,
+      "available": true,
+      "explanation": "Experience fit evaluated 1 experience requirement(s) yielding 1.00 proportional satisfaction (0 not evaluable).",
+      "evaluable_count": 1,
+      "not_evaluable_count": 0
+    },
+    "llm_fit": {
+      "name": "llm_fit",
+      "score": null,
+      "configured_weight": 0.10,
+      "effective_weight": 0.0,
+      "weighted_contribution": 0.0,
+      "available": false,
+      "explanation": "LLM-supported fit evaluation is disabled or unavailable by default in Phase 8 (deterministic execution mode).",
+      "evaluable_count": 0,
+      "not_evaluable_count": 1
+    }
+  },
+  "requirement_contributions": [
     {
-      "requirement_id": "skill_Flask",
-      "requirement_name": "Flask",
-      "similarity_score": 0.6210,
-      "semantic_status": "semantic_partial",
-      "matched_candidate_text": "FastAPI (framework)",
-      "confidence": "medium",
-      "explanation": "Moderate semantic similarity (0.62) between requirement 'Flask' and candidate evidence 'FastAPI (framework)'."
+      "requirement_id": "skill_Python",
+      "name": "Python",
+      "type": "skill",
+      "priority": "must_have",
+      "status": "matched",
+      "status_value": 1.0,
+      "priority_weight": 1.0,
+      "weighted_value": 1.0,
+      "evaluable": true,
+      "semantic_similarity": 0.95,
+      "experience_ratio": null,
+      "reason": "Candidate possesses canonical skill Python."
     }
   ],
-  "summary": {
-    "total_requirements_evaluated": 6,
-    "semantic_matches": 4,
-    "semantic_partials": 1,
-    "semantic_unrelated": 1,
-    "semantic_not_evaluable": 0,
-    "average_similarity": 0.7482
-  }
+  "all_must_haves_satisfied": true,
+  "evaluated_requirements": 7,
+  "not_evaluable_requirements": 0,
+  "weights_renormalized": true,
+  "explanation": "Overall Candidate Fit Score: 0.81 (81.2%). Rule Fit: 0.8571 (effective weight: 33.3%). Semantic Fit: 0.7850 (effective weight: 44.4%). Experience Fit: 1.0 (effective weight: 22.2%). LLM Fit: Unavailable (weights dynamically renormalized). All must-have requirements are satisfied."
 }
 ```
 
 ---
 
-## 8. Future Phases: Screening & Rankings
+## 9. Future Phases: Screening & Rankings
 
 ### `POST /jobs/{id}/screen`
 Execute the multi-layer hybrid screening pipeline over all uploaded resumes for a job posting.

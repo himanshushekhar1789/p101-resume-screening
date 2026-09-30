@@ -1,8 +1,8 @@
 import re
 from enum import Enum
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any, Literal, Union
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 
 # ---------------------------------------------------------
@@ -642,6 +642,11 @@ class CandidateJobMatchResponse(BaseModel):
     semantic_matches: Optional[List["SemanticMatchResult"]] = Field(default=None, description="Optional Phase 7 semantic matching results")
 
 
+class CandidateJobMatchWithScoreResponse(CandidateJobMatchResponse):
+    """CandidateJobMatchResponse enriched with Phase 8 hybrid candidate fit score."""
+    score: Optional["CandidateJobScoreResponse"] = Field(default=None, description="Optional Phase 8 hybrid candidate fit score")
+
+
 class MatchingAnalyzeRequest(BaseModel):
     """Request model for matching a CandidateProfile against a JobProfile directly."""
     candidate: CandidateProfile
@@ -649,6 +654,9 @@ class MatchingAnalyzeRequest(BaseModel):
     candidate_id: Optional[str] = None
     job_id: Optional[str] = None
     include_semantic: Optional[bool] = Field(default=False, description="Whether to execute Phase 7 semantic matching alongside Phase 6")
+    include_score: Optional[bool] = Field(default=False, description="Whether to compute Phase 8 hybrid candidate fit score")
+    scoring_weights: Optional["ScoringWeights"] = Field(default=None, description="Optional custom weights for Phase 8 scoring")
+    llm_fit_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Optional explicit LLM fit score [0.0, 1.0]")
 
 
 # ---------------------------------------------------------
@@ -698,6 +706,99 @@ class CandidateJobSemanticMatchResponse(BaseModel):
     summary: SemanticMatchSummary
     embedding_model: str = "all-MiniLM-L6-v2"
     thresholds: Dict[str, float] = Field(default_factory=dict)
+
+
+# ---------------------------------------------------------
+# Hybrid Fusion Scoring Schemas (Phase 8)
+# ---------------------------------------------------------
+
+class ScoringWeights(BaseModel):
+    """Configurable weights for hybrid fusion scoring components (must be non-negative and sum to 1.0)."""
+    rule_weight: float = Field(default=0.30, ge=0.0, description="Weight for deterministic rule fit")
+    semantic_weight: float = Field(default=0.40, ge=0.0, description="Weight for semantic similarity fit")
+    experience_weight: float = Field(default=0.20, ge=0.0, description="Weight for experience fit")
+    llm_weight: float = Field(default=0.10, ge=0.0, description="Weight for LLM-supported fit")
+
+    @model_validator(mode="after")
+    def validate_weights_sum(self) -> "ScoringWeights":
+        total = self.rule_weight + self.semantic_weight + self.experience_weight + self.llm_weight
+        if abs(total - 1.0) > 1e-4:
+            raise ValueError(
+                f"Scoring weights must sum to 1.0 within tolerance (current sum: {total:.4f}). "
+                f"Supplied: rule={self.rule_weight}, semantic={self.semantic_weight}, "
+                f"experience={self.experience_weight}, llm={self.llm_weight}"
+            )
+        return self
+
+
+class ScoreComponent(BaseModel):
+    """Breakdown for a single score component within hybrid fusion."""
+    name: str = Field(..., description="Component name: 'rule_fit', 'semantic_fit', 'experience_fit', 'llm_fit'")
+    score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Component score normalized to [0.0, 1.0] (None if unavailable)")
+    configured_weight: float = Field(..., ge=0.0, le=1.0, description="Original configured weight before renormalization")
+    effective_weight: float = Field(..., ge=0.0, le=1.0, description="Effective weight after dynamic renormalization")
+    weighted_contribution: float = Field(default=0.0, ge=0.0, le=1.0, description="Contribution to overall fit: score * effective_weight")
+    available: bool = Field(default=True, description="Whether this component was evaluable/available")
+    explanation: str = Field(default="", description="Human-readable explanation of how the component score was calculated")
+    evaluable_count: int = Field(default=0, description="Count of requirements evaluated under this component")
+    not_evaluable_count: int = Field(default=0, description="Count of requirements excluded or not evaluable")
+
+
+class RequirementScoreContribution(BaseModel):
+    """Detailed trace of an individual requirement's contribution to scoring."""
+    requirement_id: str = Field(..., description="Unique requirement identifier")
+    name: str = Field(..., description="Human-readable requirement name")
+    type: str = Field(default="skill", description="'skill', 'experience', 'education', 'certification', 'other'")
+    priority: RequirementPriority = Field(default="must_have", description="'must_have' or 'nice_to_have'")
+    status: MatchStatus = Field(..., description="Deterministic match status")
+    status_value: Optional[float] = Field(default=None, description="Mapped numerical value (e.g. 1.0, 0.5, 0.0, None if not_evaluable)")
+    priority_weight: float = Field(default=1.0, description="Weight factor for priority (1.0 for must_have, 0.5 for nice_to_have)")
+    weighted_value: Optional[float] = Field(default=None, description="status_value * priority_weight")
+    evaluable: bool = Field(default=True, description="Whether requirement was evaluable")
+    semantic_similarity: Optional[float] = Field(default=None, description="Raw Phase 7 cosine similarity if applicable")
+    experience_ratio: Optional[float] = Field(default=None, description="Candidate years / required years ratio if experience-based")
+    reason: Optional[str] = Field(default=None, description="Audit reason")
+
+
+class HybridScoreBreakdown(BaseModel):
+    """Container holding the 4 individual score components."""
+    rule_fit: ScoreComponent
+    semantic_fit: ScoreComponent
+    experience_fit: ScoreComponent
+    llm_fit: ScoreComponent
+
+
+class CandidateJobScoreResponse(BaseModel):
+    """Top-level response for Phase 8 Hybrid Candidate Fit Scoring."""
+    candidate_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    job_id: Optional[str] = None
+    job_title: Optional[str] = None
+    candidate_fit_score: float = Field(..., ge=0.0, le=1.0, description="Overall hybrid candidate-fit score in [0.0, 1.0]")
+    percentage_score: float = Field(..., ge=0.0, le=100.0, description="Overall score as percentage: candidate_fit_score * 100")
+    rule_fit_score: Optional[float] = Field(default=None, description="Direct shortcut to rule_fit score")
+    semantic_fit_score: Optional[float] = Field(default=None, description="Direct shortcut to semantic_fit score")
+    experience_fit_score: Optional[float] = Field(default=None, description="Direct shortcut to experience_fit score")
+    llm_fit_score: Optional[float] = Field(default=None, description="Direct shortcut to llm_fit score")
+    components: HybridScoreBreakdown
+    requirement_contributions: List[RequirementScoreContribution] = Field(default_factory=list)
+    all_must_haves_satisfied: bool = Field(default=False, description="Independent safety signal from Phase 6 (not overridden by score)")
+    evaluated_requirements: int = Field(default=0, description="Count of requirements that were evaluable")
+    not_evaluable_requirements: int = Field(default=0, description="Count of requirements marked not_evaluable")
+    weights_renormalized: bool = Field(default=False, description="Whether weights were dynamically renormalized due to unavailable components")
+    explanation: str = Field(default="", description="High-level deterministic summary of score calculation")
+
+
+class ScoringAnalyzeRequest(BaseModel):
+    """Request payload for POST /api/v1/scoring/analyze."""
+    candidate: CandidateProfile
+    job: JobProfile
+    candidate_id: Optional[str] = None
+    job_id: Optional[str] = None
+    include_semantic: Optional[bool] = Field(default=True, description="Whether to include Phase 7 semantic similarity in the score")
+    weights: Optional[ScoringWeights] = Field(default=None, description="Optional custom scoring weights overriding defaults")
+    llm_fit_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Optional explicit LLM-supported fit score [0.0, 1.0]")
+
 
 
 

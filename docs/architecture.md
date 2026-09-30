@@ -435,33 +435,105 @@ Whenever a protected incompatibility pair is detected, the similarity score is c
 
 ---
 
-## 8. Hybrid AI Engine Layers (Future Phases)
+## 8. Multi-Layer Hybrid Fusion Scoring Engine (Phase 8)
 
-The screening pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 5-layer architecture:
+Phase 8 combines deterministic requirement evaluations from Phase 6, semantic similarity signals from Phase 7, verifiable experience tenure, and optional LLM fit into an explainable, calibrated **Candidate Fit Score**.
 
-### Layer 1: Rule Engine (Objective Criteria)
-- Evaluates non-negotiable hard requirements: mandatory skills, minimum degree level, minimum years of experience, work authorizations.
-- Produces `rule_score` (0–100) and qualification flags.
+### 8.1 Architectural Pipeline & Separation of Concerns
+In strict compliance with decision-support principles:
+- **Decision-Support Signal Only**: Computes an analytical candidate-fit score in $[0.0, 1.0]$ for recruiter inspection; does **not** make hiring decisions, rank candidates, shortlist, or auto-reject.
+- **Zero Ranking Immediately After Scoring**: Scoring strictly evaluates individual candidate-job alignment. Ranking, comparative leaderboards, and Top-N selection are deferred to later phases.
+- **Separate Safety Signals**: Hard constraints (e.g. `all_must_haves_satisfied`) are tracked independently and never artificially suppressed by high aggregate scores.
 
-### Layer 2: NLP & Semantic Embedding Layer (Phase 7 Implemented)
-- Dense semantic vector embeddings (Sentence Transformers / `all-MiniLM-L6-v2`) + cosine similarity for contextual match beyond raw strings.
-- Produces `semantic_score` (0–100 in Phase 8).
+```text
+                  Candidate + Job
+                       │
+          ┌────────────┴────────────┐
+          ↓                         ↓
+   Deterministic                Semantic
+    Matching                    Matching
+    Phase 6                     Phase 7
+          │                         │
+          └────────────┬────────────┘
+                       ↓
+                Hybrid Scoring
+                   Phase 8
+                       │
+       ┌───────────────┼────────────────┐
+       ↓               ↓                ↓
+    Rule Fit      Semantic Fit     Experience Fit
+       │               │                │
+       └───────────────┼────────────────┘
+                       ↓
+                 LLM Fit (optional)
+                       ↓
+                Weighted Fusion
+                       ↓
+             Candidate Fit Score
+                       │
+                       ↓
+             Phase 9 / Explainability
+```
 
-### Layer 3: Experience & Project Alignment Layer
-- Evaluates duration, seniority depth, and relevant project experience against JD scope.
-- Produces `experience_score` (0–100 in Phase 8).
+### 8.2 Four Scoring Components
 
-### Layer 4: LLM Explanation & Verification Layer
-- Provider abstraction (`backend/app/ai/llm_client.py`) supporting Gemini, OpenAI, or local/mock runners.
-- Structured JSON outputs verified against strict Pydantic schemas.
-- Extracts citation evidence directly from resume text.
-- Generates context-specific learning roadmaps for detected skill gaps.
-- Produces `llm_score` (0–100 in Phase 8).
+Every component score is strictly normalized to the range $[0.0, 1.0]$:
 
-### Layer 5: Fusion Scoring
-- Total Candidate Score = $W_{rule} \cdot S_{rule} + W_{semantic} \cdot S_{semantic} + W_{exp} \cdot S_{exp} + W_{llm} \cdot S_{llm}$
-- Default configurable weights: 30% Rule Fit, 40% Semantic Skill Fit, 20% Experience Fit, 10% LLM Fit.
-- Every score is stored and presented with its sub-score breakdown.
+1. **Rule Fit ($S_{\text{rule}}$)**:
+   - Evaluates deterministic requirement satisfaction from Phase 6.
+   - Priority-aware weighting: `must_have` requirements carry weight $1.0$, whereas `nice_to_have` requirements carry weight $0.5$.
+   - Status mapping:
+     - `matched`: $1.0$
+     - `partial`: $0.5$
+     - `unmatched`: $0.0$
+     - `not_evaluable`: **Excluded from denominator** under default policy (`exclude`), preventing missing candidate evidence from being penalized as failure.
+   - Formula:
+     $$S_{\text{rule}} = \frac{\sum_{i \in \text{evaluable}} (\text{status\_value}_i \times \text{priority\_weight}_i)}{\sum_{i \in \text{evaluable}} \text{priority\_weight}_i}$$
+
+2. **Semantic Fit ($S_{\text{semantic}}$)**:
+   - Aggregates raw cosine similarities from Phase 7 without recomputing embeddings.
+   - Uses continuous similarity scores $\in [0.0, 1.0]$ rather than binary categories.
+   - Priority-weighted across semantically evaluable requirements (`must_have` $1.0$, `nice_to_have` $0.5$).
+   - Respects false-positive protection matrix (forced $0.0$ similarity for incompatible domains such as Java vs JavaScript).
+   - If semantic matching is disabled or candidate provides no evaluable text, marked `available = False` and dynamically renormalized.
+
+3. **Experience Fit ($S_{\text{experience}}$)**:
+   - Evaluates verifiable non-overlapping career and skill tenure strictly from Phase 6 evidence.
+   - Never uses embeddings for temporal duration.
+   - Proportional fulfillment for explicit year requirements:
+     $$S_{\text{indiv}} = \min\left(1.0, \frac{\text{candidate\_years}}{\text{required\_years}}\right)$$
+   - Excess experience above requirement is capped at $1.0$ (no over-rewarding).
+   - `not_evaluable` experience requirements (e.g. skills listed without dated role tenure) are strictly excluded from the experience denominator.
+
+4. **LLM-Supported Fit ($S_{\text{llm}}$)**:
+   - Interface for qualitative LLM reasoning.
+   - By default in Phase 8, execution remains 100% deterministic (`available = False`, `score = None`), and its weight is dynamically redistributed.
+   - Can consume explicit external scores when provided without fabricating values.
+
+### 8.3 Configurable Weights & Validation
+Default prototype weights:
+- Rule Fit: $w_{\text{rule}} = 0.30$
+- Semantic Fit: $w_{\text{semantic}} = 0.40$
+- Experience Fit: $w_{\text{experience}} = 0.20$
+- LLM Fit: $w_{\text{llm}} = 0.10$
+
+**Strict Validation**:
+- Every weight must be non-negative: $w_k \ge 0.0$.
+- Weights must sum to $1.0$ within floating-point tolerance: $|\sum w_k - 1.0| \le 1\times 10^{-4}$.
+- Invalid weights are explicitly rejected with HTTP 422 / `ValueError` rather than silently altered.
+
+### 8.4 Dynamic Weight Renormalization
+When any scoring component is unavailable (e.g., LLM fit disabled by default, or semantic matching disabled), available weights are dynamically renormalized:
+
+$$W_A = \sum_{k \in \text{available}} w_k$$
+$$w'_k = \frac{w_k}{W_A} \quad (\text{for } k \in \text{available}), \qquad w'_k = 0.0 \quad (\text{for } k \notin \text{available})$$
+
+**Overall Candidate Fit Score**:
+$$\text{candidate\_fit\_score} = \sum_{k \in \text{available}} (S_k \times w'_k)$$
+
+The system flags `weights_renormalized: true` and exposes both `configured_weight` and `effective_weight` for complete auditability.
+
+---
 
 ## 9. Database Schema Overview
 The database uses SQLAlchemy and supports both SQLite (rapid local testing) and PostgreSQL (production).

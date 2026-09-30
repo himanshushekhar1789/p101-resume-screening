@@ -296,3 +296,60 @@ The test suite validates semantic matching across 14 dedicated test cases:
 - **Inference Latency (CPU)**: $\approx 8\text{ ms}$ per text batch of 10 items on modern multi-core CPU.
 - **Cache Hit Latency**: $< 0.05\text{ ms}$ per item lookup via in-memory SHA-256 hash dictionary.
 - **End-to-End Matching Run**: Under $25\text{ ms}$ for a standard resume (30 evidence items against 10 job requirements), enabling real-time screening workflows without GPU accelerators.
+
+---
+
+## 10. Phase 8: Multi-Layer Hybrid Fusion Scoring Evaluation
+
+### 10.1 Evaluation Methodology & Mathematical Guardrails
+Phase 8 combines deterministic requirement verification, semantic similarity, verifiable experience duration, and optional LLM fit into a calibrated, explainable Candidate Fit Score:
+- **Canonical Range**: All component scores and the aggregate candidate fit score strictly reside in $[0.0, 1.0]$ (represented also as percentage $0.0\text{--}100.0\%$).
+- **Priority-Weighted Rule Fit**: Evaluates deterministic satisfaction where `must_have` requirements carry weight $1.0$ and `nice_to_have` requirements carry weight $0.5$.
+- **Not-Evaluable Safeguard**: Incomplete evidence (`not_evaluable`) is excluded from denominators rather than treated as a punitive failure ($0.0$).
+- **Proportional Experience Capping**: Explicit tenure duration calculates $\min(1.0, \text{candidate\_years} / \text{required\_years})$; excess experience is strictly capped at $1.0$.
+- **Dynamic Weight Renormalization**: When components are unavailable (e.g. LLM fit disabled by default), active weights are renormalized across available components so relative priorities remain preserved.
+- **Strict Prohibition Enforcement**: Generates zero candidate rankings, zero shortlists, and zero automated hiring decisions (`hire`/`reject`).
+
+### 10.2 Phase 8 Test Matrix (`backend/tests/test_scoring_engine.py`)
+
+The test suite validates scoring engine integrity across 19 dedicated test cases:
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_perfect_candidate_scoring` | Core Engine | Candidate satisfies all requirements with 5+ yr experience | `rule_fit = 1.0`, `exp_fit = 1.0`, `semantic_fit > 0.90`, renormalized effective weights |
+| `test_missing_must_have_safety_signal` | Safety Signal | Candidate missing a critical must-have requirement | `all_must_haves_satisfied = False`, rule fit decreases, overall fit not forced to 0 |
+| `test_partial_experience_proportional` | Experience Math | Candidate has 2.0 years vs 5.0 years required | `experience_fit = 0.40` ($2.0 / 5.0$) |
+| `test_excess_experience_capped` | Experience Math | Candidate has 8.0 years vs 5.0 years required | `experience_fit = 1.0` (capped, no bonus points above 1.0) |
+| `test_not_evaluable_excluded_from_denominator` | Fairness Guardrail | Skill tenure cannot be verified from dated roles | Requirement excluded from experience denominator; `exp_fit = 1.0` |
+| `test_priority_weighting_rule_fit` | Priority Hierarchy | Must-have vs nice-to-have differential impacts | Must-have match yields $0.6667$ vs nice-to-have match $0.3333$ |
+| `test_semantic_score_integration` | Semantic Integration | Mocked semantic results ($0.90$ must-have, $0.70$ nice-to-have) | Weighted semantic fit $= 0.8333$ |
+| `test_weight_validation_sum_rejection` | Validation | Weights summing to $1.10$ or $0.80$ | Raises `ValidationError` |
+| `test_negative_weights_rejected` | Validation | Negative weight (e.g. `semantic_weight = -0.20`) | Raises `ValidationError` |
+| `test_llm_unavailable_dynamic_renormalization` | Dynamic Weights | LLM fit unavailable (`score = None`) | Effective weights: Rule $0.3333$, Semantic $0.4444$, Exp $0.2222$ |
+| `test_score_bounds_and_clamping` | Numerical Bounds | Extreme inputs (all unmatched vs all matched) | Output bounded strictly in $[0.0, 1.0]$ and $[0.0, 100.0\%]$ |
+| `test_score_reproducibility` | Determinism | Identical input evaluated twice | Returns bitwise identical scores and breakdowns |
+| `test_no_ranking_or_shortlist_in_response` | Scope Guardrail | Output inspected for ranking terms (`rank`, `shortlist`) | Zero ranking fields present |
+| `test_no_hiring_decision_in_response` | Scope Guardrail | Output inspected for decision terms (`hire`, `reject`) | Zero decision fields present |
+| `test_configurable_weights_sanity` | Configurability | Changing weights from semantic-heavy to rule-heavy | Score changes predictably reflecting user preferences |
+| `test_five_synthetic_score_benchmarks` | Benchmarking | Evaluates 5 synthetic candidate archetypes | Accurate distribution of scores across archetypes |
+| `test_api_scoring_analyze_endpoint` | REST API | `POST /api/v1/scoring/analyze` with profiles | HTTP 200 with `CandidateJobScoreResponse` schema |
+| `test_api_matching_analyze_with_include_score` | REST API | `POST /api/v1/matching/analyze` with `include_score=True` | HTTP 200 with populated `score` object |
+| `test_api_matching_from_files_with_include_score` | REST API | `POST /api/v1/matching/from-files` with `include_score=True` | HTTP 200 with end-to-end PDF parsing and score calculation |
+
+### 10.3 Synthetic Candidate Score Benchmarks (Section 36)
+
+| Archetype | Profile Summary | Rule Fit | Semantic Fit | Exp Fit | Candidate Fit Score | Must-Haves Satisfied? |
+|---|---|---|---|---|---|---|
+| **Candidate A — Strong Match** | Senior Full-Stack (Python, FastAPI, Docker, 6 yr exp, CS degree) | **1.0000** | **0.9150** | **1.0000** | **0.9622 (96.2%)** | **True** |
+| **Candidate B — Missing Critical Must-Have** | Strong Backend Dev lacking required PostgreSQL database | **0.7143** | **0.6350** | **1.0000** | **0.7424 (74.2%)** | **False** (Safety Signal) |
+| **Candidate C — Strong Skills, Low Experience** | Junior Engineer with Python/FastAPI but 1.5 yr exp (5 yr req) | **0.8571** | **0.9350** | **0.3000** | **0.7678 (76.8%)** | **False** |
+| **Candidate D — Strong Experience, Weak Skill Fit** | 10 yr Veteran Engineer from unrelated stack (Java/Oracle) | **0.3333** | **0.1750** | **1.0000** | **0.4111 (41.1%)** | **False** |
+| **Candidate E — Sparse Resume** | Resume with Python skill, but 2 unverified tenure requirements | **1.0000** | **0.8000** | **N/A** | **0.8857 (88.6%)** | **True** (2 not evaluable) |
+
+### 10.4 Configurable Weights Sanity Verification
+To verify that scoring is truly configurable rather than static:
+* **Candidate**: Strong rule satisfaction ($1.00$), moderate semantic similarity ($0.50$), perfect experience ($1.00$).
+* **Config A (Semantic-Heavy)**: $w_{\text{rule}}=0.20, w_{\text{semantic}}=0.60, w_{\text{exp}}=0.20 \implies \text{Fit Score} = 0.7000$.
+* **Config B (Rule-Heavy)**: $w_{\text{rule}}=0.60, w_{\text{semantic}}=0.20, w_{\text{exp}}=0.20 \implies \text{Fit Score} = 0.9000$.
+* **Result**: Score adjusts dynamically and predictably ($\Delta = +0.20$), confirming active weight compliance.
+
