@@ -34,8 +34,11 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-1.5-flash"
     llm_temperature: float = 0.2
 
-    # Embedding Model
+    # Embedding Model & Semantic Matching (Phase 7)
     embedding_model_name: str = "all-MiniLM-L6-v2"
+    semantic_matching_enabled: bool = True
+    semantic_high_threshold: float = 0.75
+    semantic_medium_threshold: float = 0.55
 
     # Configurable Scoring Weights (Must sum to ~1.0)
     weight_rule_fit: float = 0.30

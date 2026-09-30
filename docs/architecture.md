@@ -353,35 +353,117 @@ $$\text{High School (1)} < \text{Associate (2)} < \text{Bachelor's (3)} < \text{
 
 ---
 
-## 7. Hybrid AI Engine Layers (Future Phases)
+## 7. Semantic Matching & Embedding Layer (Phase 7)
 
-The decision pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 4-layer architecture:
+Phase 7 introduces a dense semantic representation layer to discover conceptually related skills and contextual evidence that cannot be captured by strict taxonomy aliases alone.
+
+### 7.1 Objective & Decoupled Architectural Role
+The semantic matching layer strictly adheres to the principle of **interpretability and decision-support**:
+- **Semantic Signal Only**: It answers *"How semantically related is this candidate evidence to this job requirement?"*, NOT *"How good is this candidate overall?"*
+- **No Overriding Authority**: Semantic matching **never** overrides Phase 6 deterministic matches (`canonical_exact`, `alias_normalized`, `version_compatible`, `education_match`). If a requirement is already verified deterministically, semantic matching confirms and enriches evidence rather than conflicting with it.
+- **Conservative Guardrails**: Semantic matching never synthesizes years of experience and never alters degree hierarchy.
+- **Zero Scores / Percentages / Rankings**: Outputs requirement-level similarity records (`similarity_score`, `semantic_status`, `confidence`, `explanation`) without aggregating into 0–100 scores or shortlists (reserved for Phase 8).
+
+```text
+RESUME PIPELINE
+CandidateProfile ──→ Skill Normalization ──→ Canonical Skills
+                                                  │
+                                                  ▼
+JOB PIPELINE                            Phase 6 Deterministic Match
+JobProfile ─────────→ Skill Normalization ──→ Canonical Requirements
+                                                  │
+                                                  ▼
+                                        Phase 7 Semantic Match
+                                   (SentenceTransformers / Cosine)
+                                                  │
+                                                  ▼
+                                       Enriched Match Evidence
+                                   (Deterministic + Semantic)
+                                                  │
+                                                  ▼
+                                      Future Phase 8 Fusion Scoring
+```
+
+### 7.2 Model Architecture & Vector Representation
+- **Model**: `all-MiniLM-L6-v2` via `sentence-transformers`.
+- **Dimensions**: 384-dimensional dense real-valued vector space.
+- **Vector Normalization**: All embeddings are normalized to unit Euclidean length ($\|v\|_2 = 1.0$), transforming cosine similarity into a high-speed dot product:
+  $$\text{Cosine Similarity}(u, v) = \frac{u \cdot v}{\|u\|_2 \|v\|_2} = u \cdot v$$
+- **Hardware Profile**: CPU-first default execution. Lazy model initialization ensures test suites and application startup remain fast and lightweight, with zero external vector database dependencies (no FAISS, Chroma, Pinecone).
+
+### 7.3 Semantic Evidence Item Extraction
+To compare candidate background against requirements systematically:
+1. **Candidate Evidence Items**:
+   - Explicit normalized skills (with category context, e.g., `"Python (programming_language)"`).
+   - Work experience roles (e.g., `"Senior Backend Engineer at CloudCorp: Led microservices architecture using FastAPI"`).
+   - Project descriptions (e.g., `"Project E-Commerce API: Built high-throughput payment pipelines"`).
+   - Candidate summary statement.
+2. **Job Requirement Items**:
+   - Canonical skill requirements (e.g., `"PostgreSQL: 3+ years experience with relational databases"`).
+   - Experience scope requirements (e.g., `"5+ years of software engineering experience"`).
+   - Education degree and discipline requirements.
+
+### 7.4 Semantic Classification & Thresholds
+For each job requirement, the semantic matcher calculates cosine similarities against candidate evidence items and assigns a status based on calibrated thresholds:
+
+$$\text{Semantic Status} = \begin{cases} 
+\text{semantic\_match} & \text{if } \text{similarity} \ge 0.75 \text{ (confidence: high)} \\
+\text{semantic\_partial} & \text{if } 0.55 \le \text{similarity} < 0.75 \text{ (confidence: medium)} \\
+\text{semantic\_unrelated} & \text{if } \text{similarity} < 0.55 \text{ (confidence: low)} \\
+\text{semantic\_not\_evaluable} & \text{if candidate evidence is empty or missing}
+\end{cases}$$
+
+### 7.5 False-Positive Protection Matrix
+Because embedding models can exhibit misleadingly high similarity for syntactically similar or co-occurring programming languages and cloud tools, a strict domain protection barrier is enforced:
+
+| Requirement | Disallowed / Incompatible Candidate Item | Rationale |
+|---|---|---|
+| `Java` | `JavaScript`, `TypeScript` | Distinct runtimes, language families, and paradigms |
+| `JavaScript` | `Java` | Scripting web runtime vs JVM enterprise language |
+| `C` | `C++`, `C#` | Procedural systems language vs OOP/managed platforms |
+| `C++` | `C`, `C#` | Distinct object models, runtimes, and ecosystems |
+| `C#` | `C`, `C++` | .NET managed framework language vs unmanaged systems languages |
+| `Python` | `PyTorch` | General-purpose programming language vs ML framework |
+| `React` | `React Native` | Web DOM library vs mobile cross-platform runtime |
+| `AWS` | `AWS Lambda` | Broad cloud platform vs specific serverless compute primitive |
+
+Whenever a protected incompatibility pair is detected, the similarity score is capped at `0.0` and classified as `semantic_unrelated` to prevent false positive matches.
+
+### 7.6 In-Memory Caching & Performance
+- **Deterministic SHA-256 Cache**: An in-memory cache keyed by string SHA-256 hashes caches normalized embeddings.
+- Repeated skill tokens across multiple resumes or candidate-requirement comparisons achieve near $O(1)$ lookup latency, eliminating redundant forward passes on the transformer model.
+
+---
+
+## 8. Hybrid AI Engine Layers (Future Phases)
+
+The screening pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 5-layer architecture:
 
 ### Layer 1: Rule Engine (Objective Criteria)
 - Evaluates non-negotiable hard requirements: mandatory skills, minimum degree level, minimum years of experience, work authorizations.
 - Produces `rule_score` (0–100) and qualification flags.
 
-### Layer 2: NLP & Semantic Embedding Layer (Phase 7)
+### Layer 2: NLP & Semantic Embedding Layer (Phase 7 Implemented)
 - Dense semantic vector embeddings (Sentence Transformers / `all-MiniLM-L6-v2`) + cosine similarity for contextual match beyond raw strings.
-- Produces `semantic_score` (0–100).
+- Produces `semantic_score` (0–100 in Phase 8).
 
 ### Layer 3: Experience & Project Alignment Layer
 - Evaluates duration, seniority depth, and relevant project experience against JD scope.
-- Produces `experience_score` (0–100).
+- Produces `experience_score` (0–100 in Phase 8).
 
 ### Layer 4: LLM Explanation & Verification Layer
 - Provider abstraction (`backend/app/ai/llm_client.py`) supporting Gemini, OpenAI, or local/mock runners.
 - Structured JSON outputs verified against strict Pydantic schemas.
 - Extracts citation evidence directly from resume text.
 - Generates context-specific learning roadmaps for detected skill gaps.
-- Produces `llm_score` (0–100).
+- Produces `llm_score` (0–100 in Phase 8).
 
 ### Layer 5: Fusion Scoring
 - Total Candidate Score = $W_{rule} \cdot S_{rule} + W_{semantic} \cdot S_{semantic} + W_{exp} \cdot S_{exp} + W_{llm} \cdot S_{llm}$
 - Default configurable weights: 30% Rule Fit, 40% Semantic Skill Fit, 20% Experience Fit, 10% LLM Fit.
 - Every score is stored and presented with its sub-score breakdown.
 
-## 8. Database Schema Overview
+## 9. Database Schema Overview
 The database uses SQLAlchemy and supports both SQLite (rapid local testing) and PostgreSQL (production).
 Core entities:
 - `Job`: JD text, title, parsed requirements, scoring weights.
@@ -393,6 +475,6 @@ Core entities:
 - `SkillGap`: Matched, partial, and missing skills with evidence and importance.
 - `Recommendation`: Targeted skill improvement and project ideas.
 
-## 9. Privacy & Masked Mode
+## 10. Privacy & Masked Mode
 - Recruiter can toggle `masked_mode`.
 - When enabled, names, gender indicators, photographs, institutions, and contact details are redacted before scoring to mitigate cognitive bias.

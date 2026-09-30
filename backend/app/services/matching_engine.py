@@ -266,9 +266,11 @@ class MatchingEngine:
         job: JobProfile,
         candidate_id: Optional[str] = None,
         job_id: Optional[str] = None,
+        include_semantic: bool = False,
     ) -> CandidateJobMatchResponse:
         """
         Evaluate all structured requirements of a job against candidate evidence.
+        Optionally integrates Phase 7 semantic evaluations alongside Phase 6 deterministic results.
         """
         # Ensure canonical skills are populated
         cand_norm_skills = candidate.normalized_skills or normalize_candidate_skills(candidate.skills)
@@ -309,12 +311,32 @@ class MatchingEngine:
         # Compute Summary (Counts only, NO percentage/score!)
         summary = self._compute_summary(matches)
 
+        # Optional Phase 7 Semantic Integration
+        semantic_matches = None
+        if include_semantic:
+            from backend.app.config import get_settings
+            settings = get_settings()
+            if settings.semantic_matching_enabled:
+                from backend.app.services.semantic_matcher import evaluate_semantic_matches
+                sem_resp = evaluate_semantic_matches(candidate, job)
+                semantic_matches = sem_resp.semantic_results
+
+                sem_by_id = {res.requirement_id.lower(): res for res in semantic_matches}
+                for m in matches:
+                    key1 = f"{m.requirement.type}_{m.requirement.name}".lower()
+                    key2 = m.requirement.name.lower()
+                    if key1 in sem_by_id:
+                        m.semantic_result = sem_by_id[key1]
+                    elif key2 in sem_by_id:
+                        m.semantic_result = sem_by_id[key2]
+
         return CandidateJobMatchResponse(
             candidate_id=candidate_id or getattr(candidate.personal_info, "email", None),
             job_id=job_id or job.job_title,
             job_title=job.job_title,
             matches=matches,
             summary=summary,
+            semantic_matches=semantic_matches,
         )
 
     # -----------------------------------------------------------------------

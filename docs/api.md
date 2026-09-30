@@ -291,16 +291,17 @@ Retrieves the full controlled taxonomy of skills grouped by canonical category.
 
 ---
 
-## 6. Candidate ↔ Job Matching Engine (Phase 6)
+## 6. Candidate ↔ Job Matching Engine (Phase 6 & Phase 7)
 
 ### `POST /matching/analyze`
-Deterministically evaluates a candidate against a job description's structured requirements.
+Evaluates a candidate against a job description's structured requirements deterministically, with optional semantic embedding match enrichment.
 
 - **Request Body (JSON)**:
 ```json
 {
   "candidate": { ... },     // CandidateProfile or candidate dict
-  "job": { ... }            // JobProfile or job dict
+  "job": { ... },           // JobProfile or job dict
+  "include_semantic": false // Optional: set true to evaluate semantic embeddings (Phase 7)
 }
 ```
 Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
@@ -322,7 +323,16 @@ Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
       "match_method": "canonical_exact",
       "candidate_evidence": "Python (programming_language); Verified Experience: Senior Software Engineer at CloudCorp (2020-2024)",
       "candidate_value": "5.0 years",
-      "explanation": "Canonical exact skill match: 'Python' satisfies requirement 'Python'. Verifiable role duration: 5.0 years meets required 5.0 years."
+      "explanation": "Canonical exact skill match: 'Python' satisfies requirement 'Python'. Verifiable role duration: 5.0 years meets required 5.0 years.",
+      "semantic_result": {
+        "requirement_id": "skill_Python",
+        "requirement_name": "Python",
+        "similarity_score": 1.0,
+        "semantic_status": "semantic_match",
+        "matched_candidate_text": "Python (programming_language)",
+        "confidence": "high",
+        "explanation": "High semantic similarity (1.00) between requirement 'Python' and candidate evidence 'Python (programming_language)'."
+      }
     },
     {
       "requirement": {
@@ -337,7 +347,8 @@ Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
       "match_method": "education_match",
       "candidate_evidence": "B.Tech in Computer Science from State Tech University (2015-2019)",
       "candidate_value": "B.Tech (level 3) in Computer Science",
-      "explanation": "Degree level Bachelor's satisfied (candidate level 3 >= required level 3) and field 'Computer Science' is compatible."
+      "explanation": "Degree level Bachelor's satisfied (candidate level 3 >= required level 3) and field 'Computer Science' is compatible.",
+      "semantic_result": null
     }
   ],
   "summary": {
@@ -353,21 +364,68 @@ Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
     "nice_to_have_unmatched": 1,
     "nice_to_have_not_evaluable": 0,
     "all_must_haves_satisfied": true
-  }
+  },
+  "semantic_matches": [ ... ] // Populated when include_semantic=true
 }
 ```
 
 ### `POST /matching/from-files`
-Executes end-to-end deterministic matching directly from uploaded resume and JD documents (`.pdf`, `.docx`, `.txt`).
+Executes end-to-end matching directly from uploaded resume and JD documents (`.pdf`, `.docx`, `.txt`), with optional semantic embedding evaluation.
 
 - **Request**: Multipart Form Data:
   - `resume_file`: UploadFile (PDF or DOCX)
   - `jd_file`: UploadFile (PDF, DOCX, or TXT)
-- **Response (200 OK)**: `CandidateJobMatchResponse` with detailed requirement evaluations and summary.
+  - `include_semantic`: Query Parameter (bool, default `false`)
+- **Response (200 OK)**: `CandidateJobMatchResponse` with detailed requirement evaluations, deterministic summary, and optional semantic matches.
+
+### `POST /matching/semantic` (Phase 7)
+Evaluates candidate background against job requirements using dense vector embeddings (`all-MiniLM-L6-v2`) and cosine similarity.
+
+- **Request Body (JSON)**:
+```json
+{
+  "candidate": { ... },     // CandidateProfile
+  "job": { ... }            // JobProfile
+}
+```
+
+- **Response (200 OK)**:
+```json
+{
+  "matches": [
+    {
+      "requirement_id": "skill_FastAPI",
+      "requirement_name": "FastAPI",
+      "similarity_score": 0.8124,
+      "semantic_status": "semantic_match",
+      "matched_candidate_text": "Role: Senior Backend Engineer at CloudCorp: Built REST APIs with FastAPI",
+      "confidence": "high",
+      "explanation": "High semantic similarity (0.81) between requirement 'FastAPI' and candidate evidence 'Role: Senior Backend Engineer at CloudCorp: Built REST APIs with FastAPI'."
+    },
+    {
+      "requirement_id": "skill_Flask",
+      "requirement_name": "Flask",
+      "similarity_score": 0.6210,
+      "semantic_status": "semantic_partial",
+      "matched_candidate_text": "FastAPI (framework)",
+      "confidence": "medium",
+      "explanation": "Moderate semantic similarity (0.62) between requirement 'Flask' and candidate evidence 'FastAPI (framework)'."
+    }
+  ],
+  "summary": {
+    "total_requirements_evaluated": 6,
+    "semantic_matches": 4,
+    "semantic_partials": 1,
+    "semantic_unrelated": 1,
+    "semantic_not_evaluable": 0,
+    "average_similarity": 0.7482
+  }
+}
+```
 
 ---
 
-## 7. Future Phases: Screening & Rankings
+## 8. Future Phases: Screening & Rankings
 
 ### `POST /jobs/{id}/screen`
 Execute the multi-layer hybrid screening pipeline over all uploaded resumes for a job posting.

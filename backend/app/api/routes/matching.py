@@ -9,6 +9,7 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, status
 from backend.app.schemas import (
     MatchingAnalyzeRequest,
     CandidateJobMatchResponse,
+    CandidateJobSemanticMatchResponse,
 )
 from backend.app.services.matching_engine import MatchingEngine
 from backend.app.services.document_parser import (
@@ -35,7 +36,7 @@ router = APIRouter(prefix="/matching", tags=["Candidate ↔ Job Matching"])
     description=(
         "Performs deterministic, requirement-by-requirement evaluation of a candidate profile "
         "against job description requirements, returning structured match status, match method, "
-        "evidence citations, and requirement breakdown."
+        "evidence citations, and requirement breakdown. Optionally includes Phase 7 semantic matching."
     ),
 )
 async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
@@ -50,6 +51,7 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
             job=payload.job,
             candidate_id=payload.candidate_id,
             job_id=payload.job_id,
+            include_semantic=payload.include_semantic or False,
         )
         return result
     except Exception as e:
@@ -57,6 +59,43 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while evaluating candidate against job requirements: {str(e)}",
+        )
+
+
+@router.post(
+    "/semantic",
+    response_model=CandidateJobSemanticMatchResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Execute Semantic Candidate ↔ Requirement Matching",
+    description=(
+        "Evaluates contextual conceptual similarity between candidate evidence and job requirements "
+        "using local SentenceTransformer embeddings and cosine similarity. Does not compute hiring scores."
+    ),
+)
+async def semantic_match_endpoint(payload: MatchingAnalyzeRequest):
+    """
+    Evaluates semantic similarity between candidate profile evidence and job description requirements.
+    """
+    from backend.app.config import get_settings
+    settings = get_settings()
+
+    if not settings.semantic_matching_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Semantic matching is disabled by configuration (SEMANTIC_MATCHING_ENABLED=False).",
+        )
+
+    try:
+        from backend.app.services.semantic_matcher import evaluate_semantic_matches
+        result = evaluate_semantic_matches(candidate=payload.candidate, job=payload.job)
+        result.candidate_id = payload.candidate_id
+        result.job_id = payload.job_id
+        return result
+    except Exception as e:
+        logger.error(f"Error during semantic matching: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while executing semantic matching: {str(e)}",
         )
 
 
@@ -73,6 +112,7 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
 async def match_from_files_endpoint(
     resume_file: UploadFile = File(..., description="Candidate resume (PDF or DOCX)"),
     job_file: UploadFile = File(..., description="Job description (PDF or DOCX)"),
+    include_semantic: bool = False,
 ):
     """
     Convenience endpoint accepting uploaded documents for both resume and JD,
@@ -100,6 +140,7 @@ async def match_from_files_endpoint(
             job=job_profile,
             candidate_id=resume_file.filename,
             job_id=job_file.filename,
+            include_semantic=include_semantic,
         )
     except (UnsupportedFormatError, EmptyDocumentError, CorruptDocumentError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

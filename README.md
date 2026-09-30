@@ -458,7 +458,47 @@ curl -X POST "http://127.0.0.1:8000/api/v1/matching/from-files" \
 
 ---
 
-## 8. Project Directory Structure
+## 8. Embedding-Based Semantic Matching (Phase 7)
+
+Phase 7 introduces a dense semantic representation layer utilizing `sentence-transformers` (`all-MiniLM-L6-v2`) and cosine similarity:
+
+- **Semantic Decision-Support**: Computes continuous semantic similarity (0.0 to 1.0) between candidate evidence items (skills, role summaries, projects) and job requirements without judging overall candidate suitability.
+- **Strictly Subordinate to Determinism**: Phase 6 deterministic logic remains authoritative. Semantic similarity enriches requirement evidence rather than overturning explicit facts.
+- **Threshold-Driven Classification**:
+  - $\ge 0.75$: `semantic_match` (confidence `high`)
+  - $0.55 \text{ to } 0.75$: `semantic_partial` (confidence `medium`)
+  - $< 0.55$: `semantic_unrelated` (confidence `low`)
+  - Empty/missing evidence: `semantic_not_evaluable`
+- **Domain False-Positive Protection Matrix**: Hard filters strictly prevent semantic conflation of distinct technologies (`Java` vs `JavaScript`, `C` vs `C++`/`C#`, `Python` vs `PyTorch`, `React` vs `React Native`, `AWS` vs `AWS Lambda`), forcing similarity to `0.0`.
+- **In-Memory SHA-256 Caching**: Cached embeddings avoid redundant forward passes, yielding sub-millisecond retrieval on repeated terms.
+- **Strict Zero Scores / Zero Rankings**: Outputs requirement-level similarity records only. Scoring fusion is strictly reserved for Phase 8.
+
+### Semantic Matching API Examples
+
+#### 1. Evaluate Semantic Matches Directly (`POST /api/v1/matching/semantic`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/semantic" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... }
+     }'
+```
+
+#### 2. Deterministic Matching Enriched with Semantic Evidence (`POST /api/v1/matching/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... },
+       "include_semantic": true
+     }'
+```
+
+---
+
+## 9. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -489,7 +529,7 @@ p101-resume-screening/
 │   │   │       ├── resumes.py         # Parse & Extract endpoints (/parse, /extract)
 │   │   │       ├── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
 │   │   │       ├── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
-│   │   │       └── matching.py        # Candidate-job matching endpoints (/analyze, /from-files)
+│   │   │       └── matching.py        # Matching endpoints (/analyze, /from-files, /semantic)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -514,6 +554,8 @@ p101-resume-screening/
 │   │       ├── skill_taxonomy.py      # Centralized canonical skill registry
 │   │       ├── skill_normalizer.py    # Skill normalization & deduplication service
 │   │       ├── matching_engine.py     # Deterministic candidate-job requirement matching
+│   │       ├── embedding_service.py   # Dense vector embeddings and in-memory cache
+│   │       ├── semantic_matcher.py    # Semantic matching and false-positive protection matrix
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -529,7 +571,8 @@ p101-resume-screening/
 │       ├── test_resume_extractor.py   # Resume schema, rule, LLM validation & extraction tests
 │       ├── test_jd_analyzer.py        # Job description analysis and API tests
 │       ├── test_skill_normalizer.py   # Skill normalization and taxonomy tests
-│       └── test_matching_engine.py    # Deterministic matching and API tests
+│       ├── test_matching_engine.py    # Deterministic matching and API tests
+│       └── test_semantic_matching.py  # Embedding, threshold, caching, and semantic match tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -541,7 +584,7 @@ p101-resume-screening/
 
 ---
 
-## 9. Getting Started
+## 10. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -582,6 +625,10 @@ PORT=8000
 DATABASE_URL=sqlite:///./resume_screening.db
 LLM_PROVIDER=mock   # Options: mock (offline testing), gemini, openai
 LLM_API_KEY=        # Required only when using cloud LLM providers
+EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+SEMANTIC_MATCHING_ENABLED=True
+SEMANTIC_HIGH_THRESHOLD=0.75
+SEMANTIC_MEDIUM_THRESHOLD=0.55
 ```
 
 ### Step 5: Run the Backend Application
@@ -599,7 +646,7 @@ pytest backend/tests/ -v
 
 ---
 
-## 10. Development Roadmap & Incremental Phases
+## 11. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
@@ -607,7 +654,7 @@ pytest backend/tests/ -v
 - [x] **Phase 4: Job Description Analysis & Requirement Extraction**
 - [x] **Phase 5: Skill Normalization & Taxonomy Mapping**
 - [x] **Phase 6: Candidate ↔ Job Requirement Matching Engine**
-- [ ] **Phase 7: Embedding-Based Semantic Matching**
+- [x] **Phase 7: Embedding-Based Semantic Matching**
 - [ ] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
 - [ ] **Phase 9: Skill-Gap Analysis & Evidence Grounding**
 - [ ] **Phase 10: LLM Explanations & Personalized Recommendations**

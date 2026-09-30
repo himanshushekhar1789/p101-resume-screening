@@ -616,6 +616,7 @@ class SingleRequirementMatch(BaseModel):
     candidate_evidence: List[str] = Field(default_factory=list, description="Verbatim or traceable quotes from candidate profile")
     requirement_evidence: List[str] = Field(default_factory=list, description="Verbatim quotes from job description")
     reason: Optional[str] = Field(default=None, description="Deterministic explanation of how the decision was reached")
+    semantic_result: Optional["SemanticMatchResult"] = Field(default=None, description="Optional Phase 7 semantic evaluation for this requirement")
 
 
 class MatchingSummary(BaseModel):
@@ -638,6 +639,7 @@ class CandidateJobMatchResponse(BaseModel):
     job_title: Optional[str] = None
     matches: List[SingleRequirementMatch] = []
     summary: MatchingSummary
+    semantic_matches: Optional[List["SemanticMatchResult"]] = Field(default=None, description="Optional Phase 7 semantic matching results")
 
 
 class MatchingAnalyzeRequest(BaseModel):
@@ -646,5 +648,56 @@ class MatchingAnalyzeRequest(BaseModel):
     job: JobProfile
     candidate_id: Optional[str] = None
     job_id: Optional[str] = None
+    include_semantic: Optional[bool] = Field(default=False, description="Whether to execute Phase 7 semantic matching alongside Phase 6")
+
+
+# ---------------------------------------------------------
+# Semantic Matching Schemas (Phase 7)
+# ---------------------------------------------------------
+class SemanticStatus(str, Enum):
+    SEMANTIC_MATCH = "semantic_match"
+    SEMANTIC_PARTIAL = "semantic_partial"
+    SEMANTIC_UNRELATED = "semantic_unrelated"
+    SEMANTIC_NOT_EVALUABLE = "semantic_not_evaluable"
+
+
+class SemanticMatchResult(BaseModel):
+    """Detailed semantic evaluation of a single requirement against candidate evidence."""
+    requirement_id: str = Field(..., description="Target requirement identifier (e.g. 'skill_FastAPI')")
+    requirement_text: str = Field(..., description="Contextual text representation of the job requirement")
+    category: str = Field(default="skill", description="'skill', 'experience', 'education', 'certification', 'other'")
+    priority: RequirementPriority = Field(default="must_have", description="'must_have' or 'nice_to_have'")
+    similarity: float = Field(..., description="Raw cosine similarity [-1.0, 1.0]")
+    semantic_status: SemanticStatus = Field(..., description="semantic_match, semantic_partial, semantic_unrelated, semantic_not_evaluable")
+    candidate_evidence: Optional[str] = Field(default=None, description="Best candidate evidence string matched")
+    candidate_source: Optional[str] = Field(default=None, description="Source section in candidate profile: 'skills', 'experience', 'projects', 'certifications'")
+    candidate_text: Optional[str] = Field(default=None, description="Contextual candidate string embedded")
+    embedding_model: str = Field(default="all-MiniLM-L6-v2", description="Embedding model name used")
+    model_version: Optional[str] = Field(default=None, description="Model version if available")
+    explanation: Optional[str] = Field(default=None, description="Human-readable explanation of semantic comparison")
+
+
+class SemanticMatchSummary(BaseModel):
+    """Summary of semantic evaluation across evaluated requirements."""
+    total_evaluated: int = 0
+    semantic_match_count: int = 0
+    semantic_partial_count: int = 0
+    semantic_unrelated_count: int = 0
+    semantic_not_evaluable_count: int = 0
+    high_threshold: float = 0.75
+    medium_threshold: float = 0.55
+
+
+class CandidateJobSemanticMatchResponse(BaseModel):
+    """Response model for dedicated semantic matching endpoint POST /api/v1/matching/semantic."""
+    candidate_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    job_id: Optional[str] = None
+    job_title: Optional[str] = None
+    semantic_results: List[SemanticMatchResult] = Field(default_factory=list)
+    summary: SemanticMatchSummary
+    embedding_model: str = "all-MiniLM-L6-v2"
+    thresholds: Dict[str, float] = Field(default_factory=dict)
+
 
 
