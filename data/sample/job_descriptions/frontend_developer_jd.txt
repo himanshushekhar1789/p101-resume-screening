@@ -1,0 +1,24 @@
+Job Title: Frontend React Developer
+Company: PixelCraft
+Location: San Francisco, CA (Hybrid)
+
+About the Role:
+PixelCraft is seeking a talented Frontend React Developer to build responsive, accessible, and delightful web applications.
+
+Responsibilities:
+- Build responsive, cross-browser web interfaces using React and modern CSS
+- Collaborate with UX and UI designers to translate Figma mockups into reusable component libraries
+- Optimize web applications for maximum speed, scalability, and Core Web Vitals
+- Write clean, maintainable, and well-tested frontend code
+
+Requirements:
+- 2+ years of professional frontend web development experience
+- 2+ years of hands-on experience with React and JavaScript or TypeScript
+- Strong proficiency in HTML5, CSS3, and modern CSS techniques
+- Experience with Git version control and collaborative GitHub workflows
+- Bachelor degree in Computer Science, Web Development, or equivalent practical experience
+
+Nice to Have:
+- Experience with Next.js and Tailwind CSS is a plus
+- Familiarity with Redux or Zustand state management libraries is preferred
+- Experience with automated testing tools like Jest or Playwright

@@ -215,7 +215,125 @@ curl -X POST "http://127.0.0.1:8000/api/v1/resumes/extract" \
 
 ---
 
-## 5. Project Directory Structure
+## 5. Job Description Analysis & Requirement Extraction (Phase 4)
+
+Unstructured Job Descriptions (raw text JSON or PDF/DOCX uploads) are parsed and converted into a structured, validated `JobProfile`:
+
+1. **Dual Input Methods**:
+   - **Direct JSON (`POST /api/v1/jobs/analyze`)**: Ingests raw text payloads directly from applicant systems or recruiters.
+   - **Document Upload (`POST /api/v1/jobs/analyze/upload`)**: Reuses Phase 2 document parsing for PDF and DOCX job postings.
+2. **Deterministic & Rule-Based Heuristics**:
+   - **Section Segmentation**: Detects Summary, Responsibilities, Minimum/Required Qualifications, Preferred Qualifications, Education, and Experience.
+   - **Priority Disambiguation**: Categorizes qualifications into `must_have` vs. `nice_to_have` by recognizing mandatory clauses ("must have", "required", "minimum of") versus optional indicators ("plus", "preferred", "bonus").
+   - **Numeric Extraction**: Standardizes minimum years of experience and isolates general experience from skill-specific tenure.
+   - **Degree & Certification Matching**: Disambiguates degree acronyms from common verbs (e.g., distinguishing "B.E." from "be") and extracts credential requirements.
+   - **Responsibilities Isolation**: Keeps primary day-to-day duties cleanly isolated from candidate qualification requirements.
+3. **LLM Extraction & Ground-Truth Reconciliation**:
+   - Versioned prompt (`backend/app/ai/prompts/job_extraction.txt`) grounded on zero-hallucination principles.
+   - Post-reconciliation overrides false must-haves when cited evidence denotes optionality ("is a plus"), harmonizes categories, and auto-populates flattened `must_have` / `nice_to_have` summary lists.
+
+### Supported Job Profile Fields
+- **Metadata**: `title`, `department`, `location`, `employment_type`, `summary`.
+- **Responsibilities**: Clean list of primary job duties (`List[str]`).
+- **Skills Requirements**: Name, category, priority (`must_have` / `nice_to_have`), minimum years, and original source context.
+- **Experience Requirements**: Minimum years, required domain/scope, and priority.
+- **Education Requirements**: Minimum degree level, accepted fields of study, and mandatory flag.
+- **Certification Requirements**: Name, issuing organization, and priority.
+- **Summary Collections**: Flattened string lists of `must_have` and `nice_to_have` qualifications for fast scoring and rule filtering.
+
+### Job Description Analysis API Examples
+
+#### 1. Analyze Raw Text JD (`POST /api/v1/jobs/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/jobs/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "title": "Senior Backend Engineer",
+       "text": "Responsibilities:\n- Design scalable APIs.\n\nRequirements:\n- 5+ years of experience with Python and FastAPI.\n- Bachelor'\''s degree in Computer Science.\n- Experience with AWS and Docker is a plus."
+     }'
+```
+
+#### 2. Analyze Uploaded Document JD (`POST /api/v1/jobs/analyze/upload`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/jobs/analyze/upload" \
+     -F "file=@data/sample/job_descriptions/backend_engineer_jd.pdf"
+```
+
+#### Sample Response (`200 OK`)
+```json
+{
+  "title": "Senior Backend Engineer",
+  "profile": {
+    "title": "Senior Backend Engineer",
+    "department": null,
+    "location": null,
+    "employment_type": null,
+    "summary": "Backend engineering role designing high-throughput services.",
+    "responsibilities": [
+      "Architect and build scalable backend microservices.",
+      "Design relational schemas and optimize complex SQL queries."
+    ],
+    "skills": [
+      {
+        "name": "Python",
+        "category": "programming_language",
+        "priority": "must_have",
+        "minimum_years": 5.0,
+        "context": "5+ years of experience with Python and FastAPI"
+      },
+      {
+        "name": "FastAPI",
+        "category": "framework",
+        "priority": "must_have",
+        "minimum_years": 5.0,
+        "context": "5+ years of experience with Python and FastAPI"
+      },
+      {
+        "name": "AWS",
+        "category": "cloud",
+        "priority": "nice_to_have",
+        "minimum_years": null,
+        "context": "Experience with AWS and Docker is a plus"
+      }
+    ],
+    "experience": [
+      {
+        "role_or_domain": "Backend Software Engineering",
+        "minimum_years": 5.0,
+        "priority": "must_have",
+        "context": "5+ years backend software development experience"
+      }
+    ],
+    "education": {
+      "degree_level": "Bachelor's",
+      "fields_of_study": ["Computer Science", "Software Engineering"],
+      "is_required": true,
+      "context": "Bachelor's degree in Computer Science or related field required"
+    },
+    "certifications": [],
+    "other_requirements": [],
+    "must_have": [
+      "5.0+ years of experience in Backend Software Engineering",
+      "Python (programming_language)",
+      "FastAPI (framework)",
+      "Education: Bachelor's in Computer Science, Software Engineering"
+    ],
+    "nice_to_have": [
+      "AWS (cloud)"
+    ]
+  },
+  "metadata": {
+    "character_count": 845,
+    "word_count": 112,
+    "page_count": 1,
+    "llm_provider": "mock"
+  }
+}
+```
+
+---
+
+## 6. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -243,7 +361,8 @@ p101-resume-screening/
 │   │   │   └── routes/
 │   │   │       ├── __init__.py
 │   │   │       ├── health.py          # Health check & DB connectivity endpoint
-│   │   │       └── resumes.py         # Parse & Extract endpoints (/parse, /extract)
+│   │   │       ├── resumes.py         # Parse & Extract endpoints (/parse, /extract)
+│   │   │       └── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -255,14 +374,16 @@ p101-resume-screening/
 │   │   │   ├── llm_client.py          # Provider abstraction (Gemini, OpenAI, Mock)
 │   │   │   ├── validators.py          # JSON sanitization and Pydantic validation
 │   │   │   └── prompts/
-│   │   │       └── resume_extraction.txt # Versioned extraction prompt
+│   │   │       ├── resume_extraction.txt # Versioned resume extraction prompt
+│   │   │       └── job_extraction.txt    # Versioned job description extraction prompt
 │   │   │
 │   │   └── services/                  # Core business logic services
 │   │       ├── __init__.py
 │   │       ├── document_parser.py     # PDF/DOCX parsing, validation & sanitization
-│   │       ├── rule_extractor.py      # Regex & heading segmentation rules
+│   │       ├── rule_extractor.py      # Resume regex & heading segmentation rules
 │   │       ├── resume_extractor.py    # Hybrid rule + LLM profile extraction
-│   │       ├── jd_analyzer.py
+│   │       ├── jd_rule_extractor.py   # Job description rule & section extraction
+│   │       ├── jd_analyzer.py         # Job description analysis orchestration
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -275,12 +396,14 @@ p101-resume-screening/
 │       ├── __init__.py
 │       ├── test_health.py             # System health and schema creation tests
 │       ├── test_document_parser.py    # PDF, DOCX, validation & parse endpoint tests
-│       └── test_resume_extractor.py   # Schema, rule, LLM validation & extraction tests
+│       ├── test_resume_extractor.py   # Resume schema, rule, LLM validation & extraction tests
+│       └── test_jd_analyzer.py        # Job description analysis and API tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
 │   └── sample/
-│       └── resumes/           # Diverse synthetic test resumes (.pdf, .docx)
+│       ├── resumes/           # Diverse synthetic test resumes (.pdf, .docx)
+│       └── job_descriptions/  # Diverse synthetic job postings (.txt, .pdf, .docx)
 └── scripts/                   # Evaluation and utility scripts
 ```
 
@@ -349,7 +472,7 @@ pytest backend/tests/ -v
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
 - [x] **Phase 3: Structured Resume Information Extraction**
-- [ ] **Phase 4: Job Description Analysis & Requirement Extraction**
+- [x] **Phase 4: Job Description Analysis & Requirement Extraction**
 - [ ] **Phase 5: Skill Normalization & Taxonomy Mapping**
 - [ ] **Phase 6: Deterministic Rule Engine**
 - [ ] **Phase 7: Embedding-Based Semantic Matching**

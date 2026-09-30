@@ -1,0 +1,24 @@
+Job Title: Senior Data Scientist
+Company: AI Horizon
+Location: New York, NY (On-site)
+
+About the Role:
+AI Horizon is looking for an experienced Senior Data Scientist to design and implement deep learning and predictive machine learning models.
+
+Responsibilities:
+- Design, train, and evaluate predictive machine learning and deep learning models
+- Extract insights from complex multimodal datasets using Python and SQL
+- Collaborate with software engineers to deploy ML pipelines into production
+- Conduct statistical hypothesis testing and present findings to executive leadership
+
+Required Qualifications:
+- 4+ years of hands-on data science and machine learning experience
+- Proficiency in Python, SQL, and data libraries such as NumPy and Pandas
+- 2+ years of hands-on experience with PyTorch or TensorFlow
+- Demonstrated experience in Natural Language Processing (NLP) or Computer Vision
+- Master's degree in Artificial Intelligence, Computer Science, or Mathematics required
+
+Preferred Qualifications:
+- Ph.D. in Computer Science or related quantitative STEM field is a plus
+- Hands-on experience deploying machine learning workflows on GCP or AWS is preferred
+- Experience with Docker containerization and Kubernetes is desired

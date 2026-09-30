@@ -59,8 +59,25 @@ class MockLLMClient(BaseLLMClient):
         if self.responses:
             return self.responses.pop(0)
 
+        # Route between resume extraction and job description analysis
+        if "JOB DESCRIPTION TEXT:\n" in prompt or "Job Description (JD) analyzer" in prompt:
+            return self._generate_heuristic_jd_json(prompt)
+
         # Fallback intelligent heuristic extractor for offline/test environments
         return self._generate_heuristic_json(prompt)
+
+    def _generate_heuristic_jd_json(self, prompt: str) -> str:
+        """Parses job description embedded in prompt using heuristic JD rule extractor."""
+        from backend.app.services.jd_rule_extractor import parse_job_profile_rules
+
+        marker = "JOB DESCRIPTION TEXT:\n"
+        if marker in prompt:
+            jd_text = prompt.split(marker, 1)[1].strip()
+        else:
+            jd_text = prompt
+
+        payload = parse_job_profile_rules(jd_text)
+        return json.dumps(payload, indent=2)
 
     def _generate_heuristic_json(self, prompt: str) -> str:
         """

@@ -1,0 +1,23 @@
+Job Title: Software Engineering Intern
+Company: TechStart Innovations
+Location: Bengaluru, India (In-office)
+
+About the Role:
+TechStart Innovations is offering a 6-month Software Engineering Internship for enthusiastic students eager to learn real-world software engineering practices.
+
+Responsibilities:
+- Assist engineering mentors in building and maintaining internal software tools
+- Participate in daily agile standup meetings and peer code reviews
+- Write unit tests and maintain documentation for web applications
+- Investigate and troubleshoot software bug reports
+
+Requirements:
+- Entry-level / Fresh graduates welcome (0-1 years of experience)
+- Foundational programming knowledge in Python, Java, or C++
+- Familiarity with basic SQL queries and relational databases
+- Currently enrolled in or graduated from a B.Tech or B.S. degree in Computer Science or related engineering field
+- Strong problem solving and eagerness to learn
+
+Bonus Qualifications:
+- Personal software projects or GitHub repository links are a plus
+- Basic familiarity with Git version control is desired

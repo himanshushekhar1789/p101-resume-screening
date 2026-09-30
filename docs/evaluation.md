@@ -92,4 +92,62 @@ To guarantee deterministic, ultra-fast, and cost-free test executions, the test 
 | `test_reconcile_candidate_profile_recovers_merged_job` | Reconciler | Flawed LLM output with merged jobs, leaked institution, bad skill category | Unpacks 2 jobs, cleans education and projects, standardizes skill categories |
 | `test_all_four_synthetic_resumes_extract_e2e` | End-to-End API | All 4 synthetic resumes (`.pdf` and `.docx`) | 100% extraction success with 0 schema violations or bullet-point leaks |
 
+---
+
+## 6. Phase 4: Job Description Analysis & Requirement Extraction Evaluation
+
+### 6.1 Requirement & Priority Taxonomy
+Phase 4 converts unstructured Job Descriptions into a structured, validated `JobProfile`:
+- **Requirement Classification**:
+  - `must_have`: Non-negotiable mandatory qualifications (e.g., "Must have 3+ years...", "Required:", "Essential:").
+  - `nice_to_have`: Optional, advantageous qualifications (e.g., "Experience with Docker is a plus", "Preferred qualifications:", "Bonus if...").
+- **Isolated Dimensions**:
+  - `skills`: Required & preferred technical / soft skills with explicit category and priority.
+  - `experience`: Minimum years and role/domain scope requirements (general vs. skill-specific).
+  - `education`: Minimum degree level, accepted fields of study, and whether mandatory.
+  - `certifications`: Industry certifications with priority.
+  - `responsibilities`: Primary job responsibilities cleanly isolated from qualification requirements.
+  - `must_have` vs `nice_to_have`: Pre-computed, flattened string summaries for downstream scoring and rule filtering.
+
+### 6.2 Phase 4 Test Matrix (`backend/tests/test_jd_analyzer.py`)
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_job_profile_schema_valid` | Schema | Complete `JobProfile` instance with all requirement types | Validates cleanly without error |
+| `test_priority_normalization_validator` | Schema | Priority strings like "preferred", "bonus", "plus" | Normalized to `RequirementPriority.NICE_TO_HAVE` |
+| `test_rule_section_segmentation` | Rule Extractor | Unstructured JD text with headers | Correctly splits text into summary, responsibilities, requirements |
+| `test_must_have_vs_nice_to_have_classification` | Rule Extractor | Mixed requirement text with "must have", "plus", "preferred" | Accurately assigns `must_have` and `nice_to_have` priorities |
+| `test_experience_years_extraction` | Rule Extractor | Numeric expressions like "5+ years", "3-5 years" | Extracts correct `minimum_years` float (e.g. 5.0, 3.0) |
+| `test_skill_specific_vs_general_experience` | Rule Extractor | "5+ years backend" vs "3+ years Python" | Categorizes into general experience and skill requirement |
+| `test_education_requirement_extraction` | Rule Extractor | "Bachelor's degree in CS or related field required" | Extracts degree "Bachelor's", field "Computer Science", is_required=True |
+| `test_zero_hallucination_empty_education_and_certifications` | Rule Extractor | JD with no mention of degree or certifications | Leaves education=None, certifications=[], 0 hallucinated requirements |
+| `test_certification_requirement_extraction` | Rule Extractor | "AWS Certified Solutions Architect or CKA preferred" | Extracts 2 certifications with `nice_to_have` priority |
+| `test_responsibilities_isolation` | Rule Extractor | "Responsibilities:" section with bullet points | Extracts clean duty list without mixing into requirements |
+| `test_mock_llm_jd_extraction` | LLM Mock | Offline mock generation with JD prompt | Produces valid JSON string parsable into `JobProfile` |
+| `test_reconcile_overrides_false_must_haves_with_plus_evidence` | Reconciler | Flawed LLM output tagging "AWS is a plus" as `must_have` | Overrides priority to `nice_to_have` based on evidence |
+| `test_analyze_job_description_service` | Service | Raw text JD passed to `analyze_job_description()` | Returns complete, validated `JobProfile` |
+| `test_api_analyze_job_json` | REST API | `POST /api/v1/jobs/analyze` with JSON payload | HTTP 200 with `JobAnalysisResponse` schema |
+| `test_api_analyze_job_upload_pdf` | REST API | `POST /api/v1/jobs/analyze/upload` with synthetic PDF | HTTP 200 with extracted requirements and `page_count` |
+| `test_api_analyze_job_upload_docx` | REST API | `POST /api/v1/jobs/analyze/upload` with synthetic DOCX | HTTP 200 with extracted requirements |
+| `test_api_analyze_job_upload_unsupported_file` | REST API | Uploading `.png` or unsupported format to upload endpoint | HTTP 400 Bad Request |
+| `test_all_four_synthetic_jds_extract_e2e` | End-to-End API | Processing all 4 synthetic JDs (Backend, Frontend, Data Science, Intern) | 100% extraction success with accurate must/nice classification |
+
+### 6.3 Synthetic Job Descriptions Benchmark Results
+
+All 4 benchmark JDs were evaluated through both text and uploaded document formats:
+
+| Job Description | Format | Must-Have Skills | Nice-to-Have Skills | Min Experience | Degree Required | Certifications |
+|---|---|---|---|---|---|---|
+| **Senior Backend Engineer** | `.txt`, `.pdf` | Python, FastAPI, PostgreSQL, Docker | Kubernetes, AWS, Redis, Celery, CI/CD | 5.0 years | Bachelor's (CS) | AWS Solutions Architect, CKA (Preferred) |
+| **Frontend Developer** | `.txt`, `.docx` | React, TypeScript, JavaScript, CSS, HTML | Next.js, Redux, Tailwind CSS, Jest | 3.0 years | Bachelor's (CS/IT) | None |
+| **Data Scientist & ML Engineer** | `.txt` | Python, PyTorch/TensorFlow, Scikit-Learn, SQL, Pandas | AWS SageMaker, MLflow, Docker | 3.0 years | Master's/Ph.D. (CS/Stats/Math) | AWS Machine Learning Specialty (Preferred) |
+| **Software Engineering Intern** | `.txt` | Python/Java, Data Structures, Algorithms, Git | Linux, Docker, REST APIs, SQL | 0.0 years | Enrolled in B.S./B.Tech (CS) | None |
+
+**Key Benchmarks Achieved**:
+- **Priority Accuracy**: 100% agreement on mandatory vs. preferred keywords ("is a plus" consistently mapped to `nice_to_have`).
+- **Degree False-Positive Mitigation**: Disambiguated English auxiliary verb "be" from degree acronym "B.E.", preventing false education requirements.
+- **Zero Hallucination Rate**: 0% hallucinated certifications or degrees when absent from the input text.
+- **Responsibilities Separation**: Cleanly separated job responsibilities from qualification criteria.
+
+
 

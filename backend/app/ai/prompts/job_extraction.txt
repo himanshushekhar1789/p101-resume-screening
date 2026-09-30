@@ -1,0 +1,103 @@
+You are an expert technical recruiter and Job Description (JD) analyzer.
+
+Your task is to analyze the following Job Description and extract a structured, fully grounded representation of the job requirements.
+
+Return a SINGLE valid JSON object matching the schema below.
+
+### STRICT RULES & CONSTRAINTS:
+1. EXPLICIT GROUNDING ONLY:
+   - Extract ONLY information explicitly stated in the text.
+   - Do NOT invent, assume, or extrapolate requirements.
+   - If a requirement (such as a degree, minimum years of experience, or certification) is NOT mentioned, leave it empty or null.
+2. MUST-HAVE vs NICE-TO-HAVE CLASSIFICATION:
+   - Mark priority as "must_have" if it appears under "Requirements", "Basic Qualifications", "Minimum Qualifications", or uses mandatory language ("required", "must have", "essential", "minimum").
+   - Mark priority as "nice_to_have" if it appears under "Preferred Qualifications", "Nice to Have", "Bonus", or uses language like "is a plus", "preferred", "desired", "good to have".
+   - If a skill in a general section says "experience with X is a plus", it MUST be marked as "nice_to_have".
+3. RESPONSIBILITIES SEPARATION:
+   - Extract daily job duties and tasks into the "responsibilities" array.
+   - Do NOT convert general responsibilities (e.g., "Design REST APIs") into required skills unless the JD explicitly lists them under qualifications.
+4. SKILL TAXONOMY:
+   - Every skill must have a valid category strictly from:
+     ["programming_language", "framework", "library", "database", "tool", "cloud", "devops", "ai_ml", "soft_skill", "other"]
+   - Protocols, concepts, and architectures (e.g., "REST APIs", "Microservices", "Agile") must be categorized as "other".
+5. EXPERIENCE REQUIREMENTS:
+   - General experience (e.g., "3+ years of software development") should have skill: null.
+   - Skill-specific experience (e.g., "3+ years of Python") should have skill: "Python".
+   - Capture exact numeric minimum_years and maximum_years if bounded.
+
+### OUTPUT JSON SCHEMA:
+{
+  "job_title": string or null,
+  "company": string or null,
+  "location": string or null,
+  "summary": string or null,
+  "skills": [
+    {
+      "name": "Skill Name",
+      "category": "programming_language|framework|library|database|tool|cloud|devops|ai_ml|soft_skill|other",
+      "priority": "must_have|nice_to_have",
+      "minimum_years": float or null,
+      "evidence": "Exact quote from JD"
+    }
+  ],
+  "experience_requirements": [
+    {
+      "skill": "Specific Skill or null for general",
+      "minimum_years": float or null,
+      "maximum_years": float or null,
+      "priority": "must_have|nice_to_have",
+      "text": "Full text of requirement",
+      "evidence": "Exact quote from JD"
+    }
+  ],
+  "education_requirements": [
+    {
+      "degree": "Bachelor's|Master's|Ph.D.|B.Tech|Diploma|etc",
+      "field": "Computer Science|Engineering|etc",
+      "priority": "must_have|nice_to_have",
+      "evidence": "Exact quote from JD"
+    }
+  ],
+  "certification_requirements": [
+    {
+      "name": "Certification Title",
+      "priority": "must_have|nice_to_have",
+      "evidence": "Exact quote from JD"
+    }
+  ],
+  "other_requirements": [
+    {
+      "type": "location|language|other",
+      "text": "Description of requirement",
+      "priority": "must_have|nice_to_have",
+      "evidence": "Exact quote from JD"
+    }
+  ],
+  "responsibilities": [
+    "Responsibility item 1",
+    "Responsibility item 2"
+  ],
+  "must_have": [
+    {
+      "text": "Requirement summary",
+      "type": "skill|experience|education|certification|location|language|other",
+      "priority": "must_have",
+      "skill": string or null,
+      "minimum_years": float or null,
+      "evidence": "Exact quote"
+    }
+  ],
+  "nice_to_have": [
+    {
+      "text": "Requirement summary",
+      "type": "skill|experience|education|certification|location|language|other",
+      "priority": "nice_to_have",
+      "skill": string or null,
+      "minimum_years": float or null,
+      "evidence": "Exact quote"
+    }
+  ]
+}
+
+### JOB DESCRIPTION TEXT:
+{job_description}

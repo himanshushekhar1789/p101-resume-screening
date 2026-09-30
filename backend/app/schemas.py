@@ -1,5 +1,5 @@
 import re
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -304,3 +304,195 @@ class CandidateDetailResponse(BaseModel):
     recommendations: List[RecommendationResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------
+# Job Description & Requirements Schemas (Phase 4)
+# ---------------------------------------------------------
+
+RequirementPriority = Literal["must_have", "nice_to_have"]
+RequirementType = Literal[
+    "skill",
+    "experience",
+    "education",
+    "certification",
+    "location",
+    "language",
+    "responsibility",
+    "other",
+]
+
+
+class JobSkillRequirement(BaseModel):
+    name: str = Field(..., description="Canonical or explicit skill name")
+    category: Optional[str] = Field(
+        default="other",
+        description="programming_language, framework, library, database, tool, cloud, devops, ai_ml, soft_skill, other",
+    )
+    priority: RequirementPriority = Field(
+        default="must_have",
+        description="'must_have' (mandatory) or 'nice_to_have' (preferred)",
+    )
+    minimum_years: Optional[float] = Field(
+        default=None, description="Minimum years of experience required for this skill if specified"
+    )
+    evidence: Optional[str] = Field(
+        default=None, description="Exact phrase or sentence from the JD mentioning this skill requirement"
+    )
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> str:
+        if not v:
+            return "other"
+        cleaned = str(v).strip().lower()
+        return cleaned if cleaned in VALID_SKILL_CATEGORIES else "other"
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def validate_priority(cls, v: Any) -> str:
+        if not v:
+            return "must_have"
+        cleaned = str(v).strip().lower().replace("-", "_")
+        if any(w in cleaned for w in ["preferred", "nice", "bonus", "plus", "optional", "desired", "good_to_have"]):
+            return "nice_to_have"
+        return "must_have"
+
+
+class JobExperienceRequirement(BaseModel):
+    skill: Optional[str] = Field(
+        default=None, description="Specific skill if tied to experience, or null for general experience"
+    )
+    minimum_years: Optional[float] = Field(
+        default=None, ge=0.0, description="Minimum required years of experience"
+    )
+    maximum_years: Optional[float] = Field(
+        default=None, ge=0.0, description="Maximum experience years if bounded (e.g. 2-4 years)"
+    )
+    priority: RequirementPriority = Field(
+        default="must_have", description="'must_have' or 'nice_to_have'"
+    )
+    text: str = Field(..., description="Description of the experience requirement")
+    evidence: Optional[str] = Field(
+        default=None, description="Verbatim text from JD"
+    )
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def validate_priority(cls, v: Any) -> str:
+        if not v:
+            return "must_have"
+        cleaned = str(v).strip().lower().replace("-", "_")
+        if any(w in cleaned for w in ["preferred", "nice", "bonus", "plus", "optional", "desired", "good_to_have"]):
+            return "nice_to_have"
+        return "must_have"
+
+
+class JobEducationRequirement(BaseModel):
+    degree: Optional[str] = Field(
+        default=None, description="Degree level (e.g. Bachelor's, Master's, Ph.D., B.Tech, Diploma)"
+    )
+    field: Optional[str] = Field(
+        default=None, description="Field of study (e.g. Computer Science, Engineering, Mathematics)"
+    )
+    priority: RequirementPriority = Field(
+        default="must_have", description="'must_have' or 'nice_to_have'"
+    )
+    evidence: Optional[str] = Field(
+        default=None, description="Exact phrase or sentence from the JD"
+    )
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def validate_priority(cls, v: Any) -> str:
+        if not v:
+            return "must_have"
+        cleaned = str(v).strip().lower().replace("-", "_")
+        if any(w in cleaned for w in ["preferred", "nice", "bonus", "plus", "optional", "desired", "good_to_have"]):
+            return "nice_to_have"
+        return "must_have"
+
+
+class JobCertificationRequirement(BaseModel):
+    name: str = Field(..., description="Certification title (e.g. AWS Certified Solutions Architect)")
+    priority: RequirementPriority = Field(
+        default="must_have", description="'must_have' or 'nice_to_have'"
+    )
+    evidence: Optional[str] = Field(
+        default=None, description="Exact text from JD"
+    )
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def validate_priority(cls, v: Any) -> str:
+        if not v:
+            return "must_have"
+        cleaned = str(v).strip().lower().replace("-", "_")
+        if any(w in cleaned for w in ["preferred", "nice", "bonus", "plus", "optional", "desired", "good_to_have"]):
+            return "nice_to_have"
+        return "must_have"
+
+
+class JobOtherRequirement(BaseModel):
+    type: str = Field(default="other", description="'location', 'language', 'other'")
+    text: str = Field(..., description="Requirement description")
+    priority: RequirementPriority = Field(
+        default="must_have", description="'must_have' or 'nice_to_have'"
+    )
+    evidence: Optional[str] = Field(
+        default=None, description="Exact quote from JD"
+    )
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def validate_priority(cls, v: Any) -> str:
+        if not v:
+            return "must_have"
+        cleaned = str(v).strip().lower().replace("-", "_")
+        if any(w in cleaned for w in ["preferred", "nice", "bonus", "plus", "optional", "desired", "good_to_have"]):
+            return "nice_to_have"
+        return "must_have"
+
+
+class JobRequirementItem(BaseModel):
+    """Unified / reusable requirement item model."""
+    text: str
+    type: RequirementType
+    priority: RequirementPriority = "must_have"
+    skill: Optional[str] = None
+    minimum_years: Optional[float] = None
+    evidence: Optional[str] = None
+
+
+class JobProfile(BaseModel):
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    summary: Optional[str] = None
+    skills: List[JobSkillRequirement] = []
+    experience_requirements: List[JobExperienceRequirement] = []
+    education_requirements: List[JobEducationRequirement] = []
+    certification_requirements: List[JobCertificationRequirement] = []
+    other_requirements: List[JobOtherRequirement] = []
+    responsibilities: List[str] = []
+    must_have: List[JobRequirementItem] = []
+    nice_to_have: List[JobRequirementItem] = []
+
+
+class JobAnalysisRequest(BaseModel):
+    job_description: str = Field(..., min_length=10, description="Raw job description text")
+    job_title: Optional[str] = Field(default=None, description="Optional override or initial job title")
+
+
+class JobAnalysisMetadata(BaseModel):
+    character_count: int
+    word_count: int
+    source_type: str = Field(default="text", description="'text', 'pdf', or 'docx'")
+    llm_provider: str
+
+
+class JobAnalysisResponse(BaseModel):
+    job_title: Optional[str] = None
+    profile: JobProfile
+    metadata: JobAnalysisMetadata
+
