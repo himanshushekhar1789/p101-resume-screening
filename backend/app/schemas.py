@@ -573,3 +573,78 @@ class JobAnalysisResponse(BaseModel):
     profile: JobProfile
     metadata: JobAnalysisMetadata
 
+
+# ---------------------------------------------------------
+# Candidate ↔ Job Matching Schemas (Phase 6)
+# ---------------------------------------------------------
+class MatchStatus(str, Enum):
+    MATCHED = "matched"
+    PARTIAL = "partial"
+    UNMATCHED = "unmatched"
+    NOT_EVALUABLE = "not_evaluable"
+
+
+class MatchMethod(str, Enum):
+    CANONICAL_EXACT = "canonical_exact"
+    ALIAS_NORMALIZED = "alias_normalized"
+    VERSION_COMPATIBLE = "version_compatible"
+    EXPERIENCE_VERIFIED = "experience_verified"
+    EXPERIENCE_INSUFFICIENT = "experience_insufficient"
+    EDUCATION_MATCH = "education_match"
+    EDUCATION_PARTIAL = "education_partial"
+    CERTIFICATION_MATCH = "certification_match"
+    TEXT_EVIDENCE = "text_evidence"
+    UNMATCHED = "unmatched"
+    NOT_EVALUABLE = "not_evaluable"
+
+
+class RequirementReference(BaseModel):
+    """Reference identifying a specific job requirement being evaluated."""
+    name: str = Field(..., description="Requirement identifier (skill name, role scope, degree, cert)")
+    type: RequirementType = Field(default="skill", description="'skill', 'experience', 'education', 'certification', 'other'")
+    priority: RequirementPriority = Field(default="must_have", description="'must_have' or 'nice_to_have'")
+    minimum_years: Optional[float] = Field(default=None, description="Minimum years if experience/skill-tenure based")
+    category: Optional[str] = Field(default=None, description="Skill category if applicable")
+    context: Optional[str] = Field(default=None, description="Original verbatim requirement text from JD")
+
+
+class SingleRequirementMatch(BaseModel):
+    """Structured evaluation of a single requirement against candidate profile evidence."""
+    requirement: RequirementReference
+    status: MatchStatus
+    match_method: MatchMethod
+    candidate_evidence: List[str] = Field(default_factory=list, description="Verbatim or traceable quotes from candidate profile")
+    requirement_evidence: List[str] = Field(default_factory=list, description="Verbatim quotes from job description")
+    reason: Optional[str] = Field(default=None, description="Deterministic explanation of how the decision was reached")
+
+
+class MatchingSummary(BaseModel):
+    """Aggregate counts of matched, partial, unmatched, and not_evaluable requirements. (No score/percentage)."""
+    total_requirements: int = 0
+    matched: int = 0
+    partial: int = 0
+    unmatched: int = 0
+    not_evaluable: int = 0
+    must_have_total: int = 0
+    must_have_matched: int = 0
+    nice_to_have_total: int = 0
+    nice_to_have_matched: int = 0
+
+
+class CandidateJobMatchResponse(BaseModel):
+    """Top-level match evaluation report for a Candidate against a Job Profile."""
+    candidate_id: Optional[str] = None
+    job_id: Optional[str] = None
+    job_title: Optional[str] = None
+    matches: List[SingleRequirementMatch] = []
+    summary: MatchingSummary
+
+
+class MatchingAnalyzeRequest(BaseModel):
+    """Request model for matching a CandidateProfile against a JobProfile directly."""
+    candidate: CandidateProfile
+    job: JobProfile
+    candidate_id: Optional[str] = None
+    job_id: Optional[str] = None
+
+

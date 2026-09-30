@@ -195,6 +195,54 @@ Phase 5 introduces deterministic skill standardization without LLM dependencies:
 | **Frontend Developer JD** (`.txt`) | 11 | 9 | `JavaScript` & `Js` merged; `CSS` & `CSS3` merged; 2.0 min years preserved |
 | **Entry Level Intern JD** (`.txt`) | 7 | 7 | `Problem Solving` $\rightarrow$ `soft_skill`; `Agile` $\rightarrow$ `other`; `C`, `Java`, `Python` canonical |
 
+---
+
+## 8. Phase 6: Candidate ↔ Job Requirement Matching Engine Evaluation
+
+### 8.1 Guardrails & Verification Methodology
+Phase 6 connects the normalized candidate profile and job requirements through a 100% deterministic matching layer:
+- **Zero LLM Calls**: All matching logic is executed through rule-based and taxonomy-based evaluation.
+- **Zero Embeddings / Cosine Calculations**: Dense vector similarity is reserved for Phase 7.
+- **Zero Scores / Percentages / Rankings**: Outputs requirement-level evaluation records and summary counts only.
+- **No Overclaiming / Conservative Verification**: Skill-specific tenure requirements return `not_evaluable` if durations cannot be verified from dated roles.
+- **Non-Overlapping Tenure Union**: Concurrent positions are merged into disjoint date intervals to prevent double-counting.
+
+### 8.2 Phase 6 Test Matrix (`backend/tests/test_matching_engine.py`)
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_parse_date_to_year_float` | Date Parser | `2021`, `2021-06`, `06/2021`, `June 2021`, `Present` | Converts to decimal year float; invalid strings return `None` |
+| `test_calculate_non_overlapping_tenure` | Tenure Calculator | Two overlapping roles (2020-2022, 2021-2023) | Merges intervals into [2020, 2023] yielding exactly 3.0 years |
+| `test_parse_degree_level` | Education Parser | `B.Tech`, `Master of Science`, `Ph.D.`, `High School` | Maps to academic hierarchy levels 1–5 |
+| `test_is_field_of_study_compatible` | Education Parser | Candidate CS degree vs Software Engineering requirement | Recognizes compatible STEM fields |
+| `test_canonical_exact_skill_match` | Skill Matcher | Candidate `Python` vs Job `Python` | `status="matched"`, `method="canonical_exact"` |
+| `test_alias_skill_match` | Skill Matcher | Candidate `K8s` vs Job `Kubernetes` | `status="matched"`, `method="alias_normalized"` |
+| `test_version_compatible_skill_match` | Skill Matcher | Candidate `Python 3.11` vs Job `Python` | `status="matched"`, `method="version_compatible"` |
+| `test_unmatched_skill` | Skill Matcher | Candidate without `Kubernetes` | `status="unmatched"`, `method="unmatched"` |
+| `test_skill_with_unverifiable_years_is_not_evaluable` | Skill Matcher | Candidate has skill in skills section but no role duration | `status="not_evaluable"`, `method="not_evaluable"` |
+| `test_skill_with_sufficient_role_years` | Skill Matcher | Candidate with 4.0 yr in Python role vs 3.0 yr requirement | `status="matched"`, `method="experience_verified"` |
+| `test_general_experience_match` | Experience Matcher | Candidate with 5.0 years total vs 3.0 years requirement | `status="matched"`, `method="experience_verified"` |
+| `test_general_experience_insufficient` | Experience Matcher | Candidate with 2.0 years total vs 5.0 years requirement | `status="partial"`, `method="experience_insufficient"` |
+| `test_education_exact_match` | Education Matcher | Candidate B.Tech CS vs Job Bachelor's in CS requirement | `status="matched"`, `method="education_match"` |
+| `test_education_partial_field_mismatch` | Education Matcher | Candidate Master's in Mechanical vs Job Bachelor's in CS | `status="partial"`, `method="education_partial"` |
+| `test_certification_match` | Cert Matcher | Candidate AWS Certified Architect vs Job Requirement | `status="matched"`, `method="certification_match"` |
+| `test_priority_preservation` | Priority Integrity | Job specifies `must_have` vs `nice_to_have` requirements | Match records strictly preserve original priorities |
+| `test_no_scores_or_rankings_in_output` | Schema Integrity | Output inspected for scores, percentages, ranking fields | Asserted absent; only requirement counts present in summary |
+| `test_five_synthetic_scenarios` | Synthetic Benchmark | Evaluates 5 synthetic applicant scenarios from Section 27 | Verified expected match distributions across archetypes |
+| `test_api_matching_analyze_endpoint` | REST API | `POST /api/v1/matching/analyze` with JSON profiles | HTTP 200 with `CandidateJobMatchResponse` schema |
+| `test_api_matching_from_files_endpoint` | REST API | `POST /api/v1/matching/from-files` with PDF and DOCX | HTTP 200 with end-to-end extraction and matching |
+| `test_api_matching_from_files_unsupported_format` | REST API | Uploading `.png` to matching endpoint | HTTP 400 Bad Request |
+
+### 8.3 Benchmark Audit for the 5 Synthetic Scenarios
+
+| Scenario | Candidate Profile | Target Job Posting | Must-Have Results | Nice-to-Have Results | Overall Assessment |
+|---|---|---|---|---|---|
+| **1. Ideal Match** | Senior Backend Developer (5 yr Python, FastAPI, Docker, Postgres, B.Tech CS) | Senior Backend Engineer JD (5 yr Python, FastAPI, Docker, Postgres, BS CS) | **6/6 Matched** (100% satisfied) | **1 Matched, 1 Unmatched** (K8s missing) | `all_must_haves_satisfied=True` |
+| **2. Mismatched Candidate** | Frontend Developer (React, TypeScript, CSS, UI design) | Senior Backend Engineer JD (Python, FastAPI, Postgres, Docker) | **0/6 Matched**, 6 Unmatched | **0/2 Matched**, 2 Unmatched | `all_must_haves_satisfied=False` |
+| **3. Insufficient Experience** | Junior Software Engineer (1.5 yr experience, holds Python/Docker) | Senior Backend Engineer JD (5+ years experience required) | **5/6 Matched**, **1 Partial** (Experience Insufficient) | **0/2 Matched** | `all_must_haves_satisfied=False` (due to partial experience) |
+| **4. Related Degree Compatibility** | Engineer with B.Tech in Electronics / IT | Software Engineer JD (BS Computer Science required) | **Degree: Partial** (`education_partial`) | All skill must-haves evaluated | Degree accepted partially; highlights field nuance |
+| **5. Missing Critical Skill** | Backend Developer (Python, Django, AWS, but lacks Docker & Postgres) | Backend Engineer JD (Requires Python, FastAPI, Docker, Postgres) | **2/4 Skills Matched**, **2 Skills Unmatched** | Certifications & experience evaluated | Transparently pinpoints exact missing requirements |
+
 
 
 

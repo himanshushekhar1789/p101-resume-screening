@@ -425,7 +425,40 @@ curl -X GET "http://127.0.0.1:8000/api/v1/skills/taxonomy"
 
 ---
 
-## 7. Project Directory Structure
+## 7. Candidate ↔ Job Requirement Matching Engine (Phase 6)
+
+Phase 6 connects the normalized candidate profile and job requirements through a **100% deterministic, transparent matching engine**:
+
+- **Strictly Grounded Evaluation**: Evaluates whether a candidate satisfies job requirements across **skills**, **experience**, **education**, **certifications**, and **explicit constraints**.
+- **Zero Scores or Hallucinations**: In strict compliance with architectural decoupling, Phase 6 computes **0 overall scores**, **0 match percentages**, **0 rankings**, and makes **0 LLM calls**. (Scoring fusion is reserved for Phase 8).
+- **Match Status Categories**: `matched`, `partial`, `unmatched`, `not_evaluable`.
+- **Match Method Transparency**: Direct citation of mechanism (`canonical_exact`, `alias_normalized`, `version_compatible`, `experience_verified`, `experience_insufficient`, `education_match`, `education_partial`, `certification_match`, `text_evidence`, `unmatched`, `not_evaluable`).
+- **Overclaiming Protection**: Skill-specific tenure requirements require explicit verifiable role duration (marked `not_evaluable` rather than assuming total tenure).
+- **Overlap Prevention**: Career experience calculates the union of disjoint intervals to prevent double-counting concurrent roles.
+- **Priority Preservation**: `must_have` vs `nice_to_have` constraints are preserved with source text citations.
+
+### Matching API Examples
+
+#### 1. Analyze Profiles Directly (`POST /api/v1/matching/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... }
+     }'
+```
+
+#### 2. Match Directly from Files (`POST /api/v1/matching/from-files`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/from-files" \
+     -F "resume_file=@data/sample/resumes/synthetic_software_engineer.pdf" \
+     -F "jd_file=@data/sample/job_descriptions/backend_developer_jd.txt"
+```
+
+---
+
+## 8. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -439,7 +472,7 @@ p101-resume-screening/
 ├── docker-compose.yml         # Multi-service setup (FastAPI + PostgreSQL)
 │
 ├── docs/                      # Architectural & API specifications
-│   ├── architecture.md        # Comprehensive architecture & fusion mathematics
+│   ├── architecture.md        # Comprehensive architecture & matching specifications
 │   ├── api.md                 # REST API endpoints specification
 │   └── evaluation.md          # Evaluation methodology & synthetic dataset plan
 │
@@ -455,7 +488,8 @@ p101-resume-screening/
 │   │   │       ├── health.py          # Health check & DB connectivity endpoint
 │   │   │       ├── resumes.py         # Parse & Extract endpoints (/parse, /extract)
 │   │   │       ├── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
-│   │   │       └── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
+│   │   │       ├── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
+│   │   │       └── matching.py        # Candidate-job matching endpoints (/analyze, /from-files)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -479,6 +513,7 @@ p101-resume-screening/
 │   │       ├── jd_analyzer.py         # Job description analysis orchestration
 │   │       ├── skill_taxonomy.py      # Centralized canonical skill registry
 │   │       ├── skill_normalizer.py    # Skill normalization & deduplication service
+│   │       ├── matching_engine.py     # Deterministic candidate-job requirement matching
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -493,7 +528,8 @@ p101-resume-screening/
 │       ├── test_document_parser.py    # PDF, DOCX, validation & parse endpoint tests
 │       ├── test_resume_extractor.py   # Resume schema, rule, LLM validation & extraction tests
 │       ├── test_jd_analyzer.py        # Job description analysis and API tests
-│       └── test_skill_normalizer.py   # Skill normalization and taxonomy tests
+│       ├── test_skill_normalizer.py   # Skill normalization and taxonomy tests
+│       └── test_matching_engine.py    # Deterministic matching and API tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -505,7 +541,7 @@ p101-resume-screening/
 
 ---
 
-## 8. Getting Started
+## 9. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -563,14 +599,14 @@ pytest backend/tests/ -v
 
 ---
 
-## 9. Development Roadmap & Incremental Phases
+## 10. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
 - [x] **Phase 3: Structured Resume Information Extraction**
 - [x] **Phase 4: Job Description Analysis & Requirement Extraction**
 - [x] **Phase 5: Skill Normalization & Taxonomy Mapping**
-- [ ] **Phase 6: Deterministic Rule Engine**
+- [x] **Phase 6: Candidate ↔ Job Requirement Matching Engine**
 - [ ] **Phase 7: Embedding-Based Semantic Matching**
 - [ ] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
 - [ ] **Phase 9: Skill-Gap Analysis & Evidence Grounding**

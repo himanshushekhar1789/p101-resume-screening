@@ -261,7 +261,99 @@ Skills are mapped into 10 controlled categories:
 
 ---
 
-## 6. Hybrid AI Engine Layers (Future Phases)
+## 6. Candidate ↔ Job Requirement Matching Engine (Phase 6)
+
+Phase 6 connects the normalized candidate profile and normalized job description requirements into a transparent, deterministic matching layer:
+
+```text
+Normalized Candidate Profile               Normalized Job Description
+(skills, experience, education,               (skills, experience, education,
+ certifications, other)                         certifications, other)
+             │                                             │
+             └──────────────────────┬──────────────────────┘
+                                    │
+                                    ▼
+                Deterministic Matching Engine (Phase 6)
+                                    │
+         ┌──────────────────────────┼──────────────────────────┐
+         ▼                          ▼                          ▼
+  Skill Matching           Experience Matching        Education Matching
+• Canonical Exact          • Interval Union (Tenure)  • Degree Hierarchy
+• Alias Normalized         • Overlap Deduplication    • Field Compatibility
+• Version Compatible       • Skill-Specific Tenure    • Partial vs Matched
+• Explicit Tenure Check      Verification             
+         │                          │                          │
+         └──────────────────────────┼──────────────────────────┘
+                                    │
+         ┌──────────────────────────┴──────────────────────────┐
+         ▼                                                     ▼
+Certification Matching                                Other Requirements
+• Canonical / Alias Match                             • Verifiable Criteria
+• Priority Preserved                                  • Location / Authorization
+                                    │
+                                    ▼
+                      Structured Match Results
+            (SingleRequirementMatch array + MatchingSummary)
+            • Status: matched | partial | unmatched | not_evaluable
+            • Method: canonical_exact | alias_normalized | ...
+            • Priorities Preserved: must_have vs nice_to_have
+            • Verifiable Resume & JD Text Citations
+            • ZERO SCORES / PERCENTAGES / RANKINGS / LLM CALLS
+```
+
+### 6.1 Strict Scope & Architectural Guardrails
+1. **100% Deterministic Execution**:
+   - Zero LLM calls or generative re-interpretation.
+   - Zero dense vector embeddings or cosine similarity calculations (reserved for Phase 7).
+   - Zero string distance / fuzzy-matching thresholds (synonyms must resolve via the Phase 5 authoritative taxonomy).
+2. **Explicit Prohibition of Premature Scoring**:
+   - Phase 6 intentionally computes **no overall match score**, **no percentage**, **no ranking**, and **no hiring/shortlisting recommendation**.
+   - Output contains only granular requirement evaluations and counts of satisfied/unsatisfied requirements within `MatchingSummary`.
+3. **No Overclaiming / Conservative Verification**:
+   - If a candidate lists a skill in their skills section but the duration of usage cannot be determined from dated work experience roles, skill-specific tenure requirements are marked `not_evaluable`, never assumed to equal total career tenure.
+   - General experience is evaluated using the union of non-overlapping role date intervals, preventing double-counting of concurrent positions.
+
+### 6.2 Match Status Taxonomy
+Every requirement evaluated by the engine is assigned one of four mutually exclusive statuses:
+- `matched`: The requirement is fully satisfied according to the candidate's explicit profile evidence.
+- `partial`: The candidate partially satisfies the requirement (e.g. holds the required degree level but in an adjacent field; or has the required skill but with fewer years than demanded).
+- `unmatched`: The candidate profile provides no verifiable evidence of possessing the required skill, credential, or background.
+- `not_evaluable`: The candidate profile lacks necessary temporal or contextual details to conclusively determine satisfaction without speculation.
+
+### 6.3 Match Method Taxonomy
+Detailed metadata indicating the exact deterministic mechanism that yielded the match:
+- `canonical_exact`: Direct match between canonical skill names.
+- `alias_normalized`: Match established via taxonomy alias mapping (e.g. `K8s` $\rightarrow$ `Kubernetes`).
+- `version_compatible`: Version-qualified match (e.g. `Python 3.11` satisfies `Python`).
+- `experience_verified`: General or skill-specific experience duration met or exceeded.
+- `experience_insufficient`: Experience detected but verifiable duration falls short.
+- `education_match`: Both degree level and field of study meet or exceed requirement.
+- `education_partial`: Degree level is satisfied, but field is adjacent or unspecified.
+- `certification_match`: Recognized industry certification explicitly verified.
+- `text_evidence`: Direct textual evidence extracted from candidate profile.
+- `unmatched`: No qualifying evidence found.
+- `not_evaluable`: Insufficient data to evaluate requirement rigorously.
+
+### 6.4 Non-Overlapping Experience Interval Union
+To evaluate total career experience without bias from moonlighting, concurrent consulting, or multiple part-time roles:
+1. All dated work experiences are converted to decimal year floats (e.g., `2021-06` $\rightarrow$ `2021.417`).
+2. Current roles (`is_current=True` or `end_date="Present"`) default to the current calendar date.
+3. Date intervals $[S_i, E_i]$ are sorted by start date and merged into disjoint intervals:
+   $$\text{Intervals}_{\text{merged}} = \bigcup [S_i, E_i]$$
+4. Total tenure is computed as the sum of disjoint durations:
+   $$\text{Total Years} = \sum (E_k - S_k)$$
+This guarantees that a candidate working two concurrent positions from 2021 to 2023 is credited with 2.0 years of experience, not 4.0 years.
+
+### 6.5 Education Hierarchy & Field Compatibility
+Education requirements are evaluated against a 6-tier academic hierarchy:
+$$\text{High School (1)} < \text{Associate (2)} < \text{Bachelor's (3)} < \text{Master's (4)} < \text{Doctorate (5)}$$
+- **Degree Level Check**: Candidate must hold a degree with level $\ge$ required degree level.
+- **Field Compatibility**: If the JD specifies a technical field (e.g. `Computer Science`), candidates with degrees in `Software Engineering`, `Information Technology`, `Data Science`, or `Electrical Engineering` are recognized as compatible fields.
+- **Partial Degree Match**: If the candidate holds a Master's degree but in `Mechanical Engineering` for a Software role requiring a `Bachelor's in CS`, the status is categorized as `partial` with method `education_partial`.
+
+---
+
+## 7. Hybrid AI Engine Layers (Future Phases)
 
 The decision pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 4-layer architecture:
 
@@ -269,8 +361,7 @@ The decision pipeline intentionally rejects purely black-box LLM screening or pu
 - Evaluates non-negotiable hard requirements: mandatory skills, minimum degree level, minimum years of experience, work authorizations.
 - Produces `rule_score` (0–100) and qualification flags.
 
-### Layer 2: NLP & Semantic Embedding Layer
-- Skill taxonomy normalization (e.g., "JS" -> "JavaScript", "K8s" -> "Kubernetes").
+### Layer 2: NLP & Semantic Embedding Layer (Phase 7)
 - Dense semantic vector embeddings (Sentence Transformers / `all-MiniLM-L6-v2`) + cosine similarity for contextual match beyond raw strings.
 - Produces `semantic_score` (0–100).
 
@@ -290,7 +381,7 @@ The decision pipeline intentionally rejects purely black-box LLM screening or pu
 - Default configurable weights: 30% Rule Fit, 40% Semantic Skill Fit, 20% Experience Fit, 10% LLM Fit.
 - Every score is stored and presented with its sub-score breakdown.
 
-## 6. Database Schema Overview
+## 8. Database Schema Overview
 The database uses SQLAlchemy and supports both SQLite (rapid local testing) and PostgreSQL (production).
 Core entities:
 - `Job`: JD text, title, parsed requirements, scoring weights.
@@ -302,6 +393,6 @@ Core entities:
 - `SkillGap`: Matched, partial, and missing skills with evidence and importance.
 - `Recommendation`: Targeted skill improvement and project ideas.
 
-## 7. Privacy & Masked Mode
+## 9. Privacy & Masked Mode
 - Recruiter can toggle `masked_mode`.
 - When enabled, names, gender indicators, photographs, institutions, and contact details are redacted before scoring to mitigate cognitive bias.
