@@ -52,7 +52,44 @@ FastAPI Backend (/api/v1)
 
 ---
 
-## 3. Project Directory Structure
+## 3. Resume Document Processing (Phase 2)
+
+The system ingests candidate documents and transforms them into clean, structured text representations without premature AI manipulation.
+
+### Supported Formats & Extraction Engines
+- **PDF (`.pdf`)**: Extracted via **PyMuPDF** (`pymupdf`).
+  - Reads all document pages in sequence.
+  - Sorts text blocks (`sort=True`) to maintain natural reading order across multi-column layouts.
+  - Detects scanned / image-only PDFs that lack a text layer and raises a clear `422 Unprocessable Content` error (OCR is out of scope for this phase).
+- **DOCX (`.docx`)**: Extracted via **python-docx**.
+  - Interleaves body paragraphs and table elements in natural document order.
+  - Deduplicates merged table cells to prevent duplicate noise.
+  - Rejects empty or corrupt DOCX files with informative `400 Bad Request` errors.
+- **Unsupported Formats**: Automatically rejected (`.jpg`, `.png`, `.txt`, `.xlsx`, `.zip`, executables) with `400 Bad Request`.
+
+### Document Parsing API Example
+
+#### Request (`POST /api/v1/resumes/parse`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/resumes/parse" \
+     -F "file=@sample_resume.pdf"
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "filename": "sample_resume.pdf",
+  "file_type": "pdf",
+  "page_count": 1,
+  "character_count": 160,
+  "word_count": 20,
+  "text": "Alex Rivera\nSenior Full Stack Developer\nSkills: Python, FastAPI, React, PostgreSQL, Docker\nExperience: 5 years at TechCorp designing cloud-native microservices."
+}
+```
+
+---
+
+## 4. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -79,22 +116,24 @@ p101-resume-screening/
 │   │   ├── api/
 │   │   │   └── routes/
 │   │   │       ├── __init__.py
-│   │   │       └── health.py  # Health check & DB connectivity endpoint
+│   │   │       ├── health.py          # Health check & DB connectivity endpoint
+│   │   │       └── resumes.py         # Resume document parsing endpoint (/api/v1/resumes/parse)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
-│   │   │   ├── session.py     # SQLAlchemy engine, session maker, and init_db
-│   │   │   └── models.py      # Relational models (Job, Candidate, Resume, etc.)
+│   │   │   ├── session.py             # SQLAlchemy engine, session maker, and init_db
+│   │   │   └── models.py              # Relational models (Job, Candidate, Resume, etc.)
 │   │   │
 │   │   ├── ai/
 │   │   │   ├── __init__.py
-│   │   │   ├── llm_client.py  # Provider abstraction (Gemini, OpenAI, Mock)
+│   │   │   ├── llm_client.py          # Provider abstraction (Gemini, OpenAI, Mock)
 │   │   │   ├── hybrid_engine.py
 │   │   │   ├── validators.py
-│   │   │   └── prompts/       # Centralized, versioned prompt templates
+│   │   │   └── prompts/               # Centralized, versioned prompt templates
 │   │   │
-│   │   └── services/          # Core business logic services
+│   │   └── services/                  # Core business logic services
 │   │       ├── __init__.py
+│   │       ├── document_parser.py     # PDF/DOCX parsing, validation & sanitization
 │   │       ├── resume_parser.py
 │   │       ├── jd_analyzer.py
 │   │       ├── rule_filter.py
@@ -107,7 +146,8 @@ p101-resume-screening/
 │   │
 │   └── tests/
 │       ├── __init__.py
-│       └── test_health.py     # System health and schema creation tests
+│       ├── test_health.py             # System health and schema creation tests
+│       └── test_document_parser.py    # PDF, DOCX, validation & endpoint tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -117,7 +157,7 @@ p101-resume-screening/
 
 ---
 
-## 4. Getting Started
+## 5. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -175,10 +215,10 @@ pytest backend/tests/ -v
 
 ---
 
-## 5. Development Roadmap & Incremental Phases
+## 6. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
-- [ ] **Phase 2: Resume PDF/DOCX Parsing**
+- [x] **Phase 2: Resume PDF/DOCX Parsing**
 - [ ] **Phase 3: Structured Resume Information Extraction**
 - [ ] **Phase 4: Job Description Analysis & Requirement Extraction**
 - [ ] **Phase 5: Skill Normalization & Taxonomy Mapping**

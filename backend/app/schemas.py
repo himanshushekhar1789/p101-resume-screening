@@ -15,6 +15,19 @@ class HealthResponse(BaseModel):
 
 
 # ---------------------------------------------------------
+# Document Parsing Schema (Phase 2)
+# ---------------------------------------------------------
+class DocumentParseResponse(BaseModel):
+    filename: str
+    file_type: str
+    page_count: int
+    character_count: int
+    word_count: int
+    text: str
+
+
+
+# ---------------------------------------------------------
 # Scoring Configuration Schema
 # ---------------------------------------------------------
 class ScoringWeights(BaseModel):

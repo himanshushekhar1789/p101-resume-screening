@@ -39,7 +39,35 @@ The **P_101 LLM-Based Resume Screening System** is designed as an AI-assisted de
                                                         └─────────────────────────────────┘
 ```
 
-## 2. Hybrid AI Engine Layers
+## 2. Document Ingestion & Processing Pipeline (Phase 2)
+
+Before any AI or matching engine runs, resumes pass through a strictly decoupled document extraction pipeline:
+
+```text
+Upload (.pdf or .docx)
+   ↓
+Validation
+   • Extension check (.pdf, .docx only)
+   • Magic byte verification (%PDF, PK\x03\x04)
+   • Size boundary validation (<= configurable MAX_UPLOAD_SIZE_MB, non-zero)
+   • Filename path-traversal sanitization
+   ↓
+Document Parser Service (backend/app/services/document_parser.py)
+   ├── PDF Branch: PyMuPDF (pymupdf)
+   │   • Iterates pages
+   │   • Extracts text with reading order sort (sort=True)
+   │   • Catches blank/scanned documents (raises 422 ScannedDocumentError)
+   └── DOCX Branch: python-docx
+       • Preserves natural body flow order across paragraphs and tables
+       • Merged-cell deduplication in tables
+       • Catches empty documents (raises 400 EmptyDocumentError)
+   ↓
+Clean Extracted Text & Metadata (character count, word count, page count)
+   ↓
+Downstream Information Extraction & Screening Pipelines
+```
+
+## 3. Hybrid AI Engine Layers
 
 The decision pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 4-layer architecture:
 

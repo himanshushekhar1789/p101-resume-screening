@@ -45,8 +45,29 @@ Allows recruiter review and manual editing of mandatory/preferred requirements b
 
 ## 3. Resume Upload & Processing
 
+### `POST /resumes/parse`
+Extract text and structural metrics from an uploaded `.pdf` or `.docx` resume file.
+
+- **Request**: Multipart Form Data: `file: UploadFile`
+- **Supported MIME Types**: `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- **Response (200 OK)**:
+```json
+{
+  "filename": "alex_rivera_resume.pdf",
+  "file_type": "pdf",
+  "page_count": 1,
+  "character_count": 160,
+  "word_count": 20,
+  "text": "Alex Rivera\nSenior Full Stack Developer\nSkills: Python, FastAPI, React, PostgreSQL, Docker\nExperience: 5 years at TechCorp designing cloud-native microservices."
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Empty file, corrupt file header, or unsupported format (`.png`, `.txt`, etc.)
+  - `413 Payload Too Large`: File exceeds configured maximum size limit (default 10 MB)
+  - `422 Unprocessable Content`: Scanned/image-only PDF with no extractable text layer
+
 ### `POST /jobs/{id}/resumes`
-Upload one or multiple resumes (`.pdf`, `.docx`).
+Upload one or multiple resumes (`.pdf`, `.docx`) associated with a job posting.
 - **Form Data**: `files: List[UploadFile]`
 - **Response**: List of uploaded and parsed candidate IDs with parsing summaries.
 
