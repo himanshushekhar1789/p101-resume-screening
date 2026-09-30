@@ -67,9 +67,9 @@ Clean Extracted Text & Metadata (character count, word count, page count)
 Downstream Information Extraction & Screening Pipelines
 ```
 
-## 3. Structured Resume Extraction Pipeline (Phase 3)
+## 3. Structured Resume Extraction Pipeline (Phase 3 & 3.1)
 
-The raw text extracted from documents is converted into a validated `CandidateProfile` through a 5-stage layered extraction pipeline:
+The raw text extracted from documents is converted into a validated `CandidateProfile` through a 5-stage layered extraction and quality-hardening pipeline:
 
 ```text
 Document Parser
@@ -79,22 +79,52 @@ Raw Resume Text
 Deterministic / Rule Extraction (backend/app/services/rule_extractor.py)
       ├── Regex Email & Phone extraction
       ├── LinkedIn & GitHub profile links
-      └── Headings & Section segmentation (Summary, Skills, Experience, Education, etc.)
+      ├── Headings & Section segmentation (Summary, Skills, Experience, Education, etc.)
+      ├── Multi-job boundary detection (parse_experience_blocks)
+      ├── Multi-format education extraction (parse_education_blocks)
+      └── Project name vs. description isolation (parse_project_blocks)
       ↓
 LLM Extraction Layer (backend/app/ai/llm_client.py + prompts/resume_extraction.txt)
-      ├── Strict grounding: extract only explicit data without inference
-      ├── Categorizes skills (programming_language, framework, devops, database, etc.)
+      ├── Strict negative constraints preventing entity merging
+      ├── Categorizes skills via canonical SKILL_TAXONOMY
       └── Extracts complex entities (nested experience, education, projects, achievements)
       ↓
-JSON Sanitization & Pydantic Validation (backend/app/ai/validators.py)
+JSON Sanitization & Pydantic Validation (backend/app/ai/validators.py & schemas.py)
       ├── Strips markdown codeblocks & locates outermost JSON boundaries
-      └── Enforces strict validation against CandidateProfile schema
+      ├── Enforces strict validation against CandidateProfile schema
+      ├── Validates skill categories against VALID_SKILL_CATEGORIES
+      └── Sanitizes company fields against bullet-point leakage
       ↓
-Ground-Truth Reconciliation (backend/app/services/resume_extractor.py)
-      └── Merges and guarantees deterministic rule extractions (email/phone/links)
+Quality-Hardening & Ground-Truth Reconciliation (backend/app/services/resume_extractor.py)
+      ├── Merges deterministic contact info (email/phone/links)
+      ├── Unpacks merged jobs if LLM collapses multiple roles into a single experience item
+      ├── Cleans institution names by removing leaked degree names, fields, and year ranges
+      ├── Splits merged project names and descriptions
+      └── Normalizes skill categories according to canonical taxonomy
       ↓
 Validated Candidate Profile (CandidateProfile)
 ```
+
+### 3.1 Quality Hardening Specifics (Phase 3.1)
+
+1. **Multi-Job Experience Separation**:
+   - Resumes with multiple positions (e.g. Senior Software Engineer at CloudCorp and Software Developer at AppLabs) are segmented by detecting date boundary patterns (`19\d\d|20\d\d\s*[-–]\s*(?:19\d\d|20\d\d|present)`) and role headers.
+   - Company fields are strictly sanitized: bullet points (`-`, `*`, `•`), long duty descriptions (>80 chars), and swapped titles are rejected or cleaned.
+   - Date ranges are validated to guarantee `start_date <= end_date`. If reversed, dates are automatically swapped.
+
+2. **Education Format Resilience**:
+   - Accommodates Format A (multi-line), Format B (dash-delimited `Degree in Field - Institution (Years)`), and Format C (comma-delimited `Degree, Field, Institution, Years`).
+   - Degree tokens preserve abbreviation periods (e.g., `M.S.`, `B.S.`, `Ph.D.`, `B.Tech`).
+   - Fields of study are partitioned cleanly from institutions without text leakage.
+   - Lingering dates and parentheses are stripped from the `institution` string.
+
+3. **Project Name vs. Description Separation**:
+   - Project titles are decoupled from their functional descriptions when resumes present them as `Project Name: Description` or `Project Name - Description`.
+   - Technologies are parsed from explicit tech stack lines or extracted canonical keywords from project descriptions.
+
+4. **Skill Taxonomy & Hardening**:
+   - Skill items are normalized against `SKILL_TAXONOMY`, enforcing exact categorization among 10 allowed categories: `programming_language`, `framework`, `library`, `database`, `tool`, `cloud`, `devops`, `ai_ml`, `soft_skill`, and `other`.
+   - Technical concepts and architectures such as `REST APIs` and `Microservices` are strictly mapped to `other` rather than misclassified as frameworks or tools.
 
 ## 4. Hybrid AI Engine Layers
 

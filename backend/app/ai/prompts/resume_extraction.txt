@@ -5,8 +5,43 @@ CRITICAL INSTRUCTIONS:
 2. Do NOT infer, guess, extrapolate, or invent missing information.
 3. If an item (such as phone, date, grade, location, or summary) is not explicitly present, set it to null.
 4. Do NOT invent skills, projects, certifications, achievements, or employment history.
-5. Extract skills and categorize each into: "programming_language", "framework", "library", "database", "tool", "cloud", "devops", "ai_ml", "soft_skill", or "other".
-6. Return ONLY a valid JSON object matching the exact structure below. Do NOT output conversational text, explanations, or extraneous commentary.
+5. Return ONLY a valid JSON object matching the exact structure below. Do NOT output conversational text, explanations, or extraneous commentary.
+
+STRUCTURAL INTEGRITY RULES:
+
+EXPERIENCE:
+- Every distinct job or employment position MUST be a separate object in the "experience" array.
+- NEVER merge multiple employers or roles into a single experience entry.
+- NEVER place bullet points, job duties, or responsibilities into the "company" field.
+- NEVER embed a subsequent job title or company inside a previous job's "description".
+- Separate the "title", "company", "location", "start_date", "end_date", "is_current", and "description" cleanly.
+- If the role is ongoing / present, set "is_current": true and "end_date": null.
+- Extract any technologies mentioned specifically in that role into the "skills" array for that experience.
+
+EDUCATION:
+- Separate "degree", "institution", "field", "start_year", "end_year", and "grade".
+- NEVER place the entire education string into the "institution" field.
+- NEVER duplicate degree or field name inside "institution" (e.g. for "B.Tech in Computer Science - State Tech University", degree is "B.Tech", field is "Computer Science", institution is "State Tech University").
+- If field of study is not stated, set "field": null.
+
+PROJECTS:
+- Separate project name from project description.
+- The "name" field MUST be only the title of the project (e.g. "E-Commerce Microservices", NOT "E-Commerce Microservices: Scalable distributed order processing engine...").
+- Place the details and explanation in the "description" field.
+- Extract referenced tools and libraries into the "technologies" array.
+
+SKILL CATEGORIZATION:
+Every skill must have a "name" and a "category" restricted strictly to:
+- "programming_language" (e.g. Python, C++, Java, JavaScript, TypeScript, Go)
+- "framework" (e.g. FastAPI, React, Next.js, Django, Angular, Vue, Flask, Express)
+- "library" (e.g. NumPy, Pandas, Redux, Tailwind CSS, SciPy)
+- "database" (e.g. PostgreSQL, MySQL, MongoDB, Redis, SQLite, Oracle)
+- "tool" (e.g. Git, Webpack, Postman, Jira, VS Code)
+- "cloud" (e.g. AWS, GCP, Azure, DigitalOcean)
+- "devops" (e.g. Docker, Kubernetes, CI/CD, Terraform, Jenkins)
+- "ai_ml" (e.g. Machine Learning, Deep Learning, PyTorch, TensorFlow, NLP)
+- "soft_skill" (e.g. Leadership, Communication, Problem Solving, Teamwork)
+- "other" (e.g. REST APIs, Microservices, Agile, System Design, GraphQL)
 
 JSON SCHEMA:
 {

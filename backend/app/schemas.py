@@ -117,12 +117,34 @@ class PersonalInfo(BaseModel):
         return str(v).strip()
 
 
+VALID_SKILL_CATEGORIES = {
+    "programming_language",
+    "framework",
+    "library",
+    "database",
+    "tool",
+    "cloud",
+    "devops",
+    "ai_ml",
+    "soft_skill",
+    "other",
+}
+
+
 class SkillItem(BaseModel):
     name: str
     category: Optional[str] = Field(
         default="other",
         description="programming_language, framework, library, database, tool, cloud, devops, ai_ml, soft_skill, other",
     )
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> str:
+        if not v:
+            return "other"
+        cleaned = str(v).strip().lower()
+        return cleaned if cleaned in VALID_SKILL_CATEGORIES else "other"
 
 
 class EducationItem(BaseModel):
@@ -143,6 +165,16 @@ class ExperienceItem(BaseModel):
     is_current: bool = False
     description: Optional[str] = None
     skills: List[str] = []
+
+    @field_validator("company", mode="before")
+    @classmethod
+    def sanitize_company(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        cleaned = str(v).strip()
+        if cleaned.startswith(("-", "*", "•", "–")) or len(cleaned) > 80:
+            return None
+        return cleaned
 
 
 class ProjectItem(BaseModel):

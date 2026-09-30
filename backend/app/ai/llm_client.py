@@ -10,6 +10,11 @@ from backend.app.services.rule_extractor import (
     extract_phone,
     extract_links,
     extract_sections,
+    categorize_skill,
+    parse_experience_blocks,
+    parse_education_blocks,
+    parse_project_blocks,
+    SKILL_TAXONOMY,
 )
 
 logger = logging.getLogger(__name__)
@@ -82,117 +87,105 @@ class MockLLMClient(BaseLLMClient):
         links = extract_links(resume_text)
         sections = extract_sections(resume_text)
 
-        # Heuristic Skills
+        # 1. Skills
         skills: List[Dict[str, str]] = []
         skills_text = sections.get("skills", "")
-        # Common skill keywords
-        skill_catalog = {
-            "Python": "programming_language",
-            "C++": "programming_language",
-            "Java": "programming_language",
-            "JavaScript": "programming_language",
-            "TypeScript": "programming_language",
-            "SQL": "database",
-            "PostgreSQL": "database",
-            "MySQL": "database",
-            "MongoDB": "database",
-            "FastAPI": "framework",
-            "React": "framework",
-            "Next.js": "framework",
-            "Django": "framework",
-            "Flask": "framework",
-            "Node.js": "framework",
-            "Docker": "devops",
-            "Kubernetes": "devops",
-            "Git": "tool",
-            "AWS": "cloud",
-            "GCP": "cloud",
-            "Azure": "cloud",
-            "Machine Learning": "ai_ml",
-            "PyTorch": "ai_ml",
-            "TensorFlow": "ai_ml",
-            "REST APIs": "framework",
+        search_corpus = f"{skills_text} {resume_text}"
+        seen_skills = set()
+
+        display_map = {
+            "fastapi": "FastAPI",
+            "postgresql": "PostgreSQL",
+            "postgres": "PostgreSQL",
+            "mysql": "MySQL",
+            "mongodb": "MongoDB",
+            "javascript": "JavaScript",
+            "typescript": "TypeScript",
+            "next.js": "Next.js",
+            "nextjs": "Next.js",
+            "node.js": "Node.js",
+            "nodejs": "Node.js",
+            "tailwind css": "Tailwind CSS",
+            "tailwind": "Tailwind CSS",
+            "rest apis": "REST APIs",
+            "rest api": "REST APIs",
+            "rest": "REST APIs",
+            "ci/cd": "CI/CD",
+            "gcp": "GCP",
+            "aws": "AWS",
+            "sql": "SQL",
+            "html": "HTML",
+            "html5": "HTML5",
+            "css": "CSS",
+            "css3": "CSS3",
+            "nlp": "NLP",
+            "pytorch": "PyTorch",
+            "tensorflow": "TensorFlow",
         }
 
-        # Check full text and skills section
-        search_corpus = f"{skills_text} {resume_text}"
-        for skill_name, category in skill_catalog.items():
-            if re.search(r"\b" + re.escape(skill_name) + r"\b", search_corpus, re.IGNORECASE):
-                skills.append({"name": skill_name, "category": category})
+        for skill_key in SKILL_TAXONOMY.keys():
+            if re.search(r"\b" + re.escape(skill_key) + r"\b", search_corpus, re.IGNORECASE):
+                display_name = display_map.get(skill_key, skill_key.title() if not skill_key.isupper() else skill_key)
+                if display_name not in seen_skills:
+                    seen_skills.add(display_name)
+                    skills.append({
+                        "name": display_name,
+                        "category": categorize_skill(skill_key),
+                    })
 
-        # Summary
+        # 2. Summary
         summary = sections.get("summary", None)
         if summary:
-            summary = summary.replace("\n", " ").strip()
+            summary = " ".join(summary.split()).strip()
 
-        # Education
-        education = []
-        edu_text = sections.get("education", "")
-        if edu_text:
-            edu_entry: Dict[str, Any] = {
-                "degree": None,
-                "institution": None,
-                "field": None,
-                "start_year": None,
-                "end_year": None,
-                "grade": None,
-            }
-            # Look for degree tokens
-            degree_match = re.search(r"\b(B\.?Tech|B\.?S|M\.?S|Ph\.?D|Bachelor|Master|Diploma)\b", edu_text, re.I)
-            if degree_match:
-                edu_entry["degree"] = degree_match.group(0)
+        # 3. Education (Multi-entry aware)
+        education = parse_education_blocks(sections.get("education", ""))
 
-            # Look for years
-            years = re.findall(r"\b(20\d\d|19\d\d)\b", edu_text)
-            if len(years) >= 2:
-                edu_entry["start_year"] = int(years[0])
-                edu_entry["end_year"] = int(years[1])
-            elif len(years) == 1:
-                edu_entry["end_year"] = int(years[0])
+        # 4. Experience (Multi-entry aware, distinct boundaries)
+        experience = parse_experience_blocks(sections.get("experience", ""))
 
-            # Extract first line of education as institution if present
-            edu_lines = [l for l in edu_text.splitlines() if l.strip()]
-            if edu_lines:
-                edu_entry["institution"] = edu_lines[0]
+        # 5. Projects (Name separated from description and technologies)
+        projects = parse_project_blocks(sections.get("projects", ""))
 
-            education.append(edu_entry)
+        # 6. Certifications
+        certifications = []
+        cert_text = sections.get("certifications", "")
+        if cert_text:
+            for cl in cert_text.splitlines():
+                cl_clean = cl.strip().lstrip("-*• ")
+                if cl_clean:
+                    parts = re.split(r"\s+[-–]\s+", cl_clean)
+                    c_name = parts[0].strip()
+                    c_org = parts[1].strip() if len(parts) > 1 else None
+                    date_m = re.search(r"\(?((?:19|20)\d\d)\)?", cl_clean)
+                    date = date_m.group(1) if date_m else None
+                    if c_org and date:
+                        c_org = re.sub(r"\(?(?:19|20)\d\d\)?", "", c_org).strip(" -—") or c_org
+                    certifications.append({
+                        "name": c_name,
+                        "issuing_organization": c_org,
+                        "issue_date": date,
+                        "credential_id": None,
+                        "url": None,
+                    })
 
-        # Experience
-        experience = []
-        exp_text = sections.get("experience", "")
-        if exp_text:
-            exp_lines = [l for l in exp_text.splitlines() if l.strip()]
-            exp_entry: Dict[str, Any] = {
-                "title": exp_lines[0] if exp_lines else "Software Engineer",
-                "company": exp_lines[1] if len(exp_lines) > 1 else None,
-                "location": None,
-                "start_date": None,
-                "end_date": None,
-                "is_current": "present" in exp_text.lower(),
-                "description": " ".join(exp_lines[2:]) if len(exp_lines) > 2 else exp_text,
-                "skills": [s["name"] for s in skills[:3]],
-            }
-            dates = re.findall(r"\b(20\d\d|19\d\d)\b", exp_text)
-            if dates:
-                exp_entry["start_date"] = dates[0]
-                if len(dates) > 1:
-                    exp_entry["end_date"] = dates[1]
-            experience.append(exp_entry)
-
-        # Projects
-        projects = []
-        proj_text = sections.get("projects", "")
-        if proj_text:
-            proj_lines = [l for l in proj_text.splitlines() if l.strip()]
-            proj_entry = {
-                "name": proj_lines[0] if proj_lines else "Key Project",
-                "description": " ".join(proj_lines[1:]) if len(proj_lines) > 1 else None,
-                "technologies": [s["name"] for s in skills[:4]],
-                "url": None,
-                "start_date": None,
-                "end_date": None,
-            }
-            projects.append(proj_entry)
+        # 7. Achievements
+        achievements = []
+        ach_text = sections.get("achievements", "")
+        if ach_text:
+            for al in ach_text.splitlines():
+                al_clean = al.strip().lstrip("-*• ")
+                if al_clean:
+                    date_m = re.search(r"\(?((?:19|20)\d\d)\)?", al_clean)
+                    date = date_m.group(1) if date_m else None
+                    title = al_clean
+                    if date:
+                        title = re.sub(r"\s*\(?(?:19|20)\d\d\)?", "", al_clean).strip(" -—")
+                    achievements.append({
+                        "title": title,
+                        "description": None,
+                        "date": date,
+                    })
 
         result_payload = {
             "personal_info": {
@@ -208,8 +201,8 @@ class MockLLMClient(BaseLLMClient):
             "education": education,
             "experience": experience,
             "projects": projects,
-            "certifications": [],
-            "achievements": [],
+            "certifications": certifications,
+            "achievements": achievements,
         }
 
         return json.dumps(result_payload, indent=2)

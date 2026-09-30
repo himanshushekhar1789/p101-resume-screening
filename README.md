@@ -114,7 +114,7 @@ The raw text extracted from documents is analyzed through a layered architecture
 - **Certifications**: Credential name, issuing organization, dates, credential ID.
 - **Achievements**: Awards, competitions, publications.
 
-### Extraction API Example
+### Extraction API Example (Phase 3 & 3.1 Hardened)
 
 #### Request (`POST /api/v1/resumes/extract`)
 ```bash
@@ -139,10 +139,17 @@ curl -X POST "http://127.0.0.1:8000/api/v1/resumes/extract" \
     "summary": "Backend Software Engineer with 5+ years building scalable microservices using Python, FastAPI, and PostgreSQL.",
     "skills": [
       { "name": "Python", "category": "programming_language" },
+      { "name": "SQL", "category": "database" },
       { "name": "FastAPI", "category": "framework" },
+      { "name": "Django", "category": "framework" },
       { "name": "PostgreSQL", "category": "database" },
+      { "name": "Redis", "category": "database" },
+      { "name": "Git", "category": "tool" },
+      { "name": "AWS", "category": "cloud" },
       { "name": "Docker", "category": "devops" },
-      { "name": "AWS", "category": "cloud" }
+      { "name": "Kubernetes", "category": "devops" },
+      { "name": "REST APIs", "category": "other" },
+      { "name": "Microservices", "category": "other" }
     ],
     "education": [
       {
@@ -156,27 +163,45 @@ curl -X POST "http://127.0.0.1:8000/api/v1/resumes/extract" \
     ],
     "experience": [
       {
-        "title": "Senior Software Engineer - CloudCorp (2022 - Present)",
+        "title": "Senior Software Engineer",
         "company": "CloudCorp",
         "location": null,
         "start_date": "2022",
         "end_date": null,
         "is_current": true,
-        "description": "Designed and maintained high-throughput REST APIs.",
-        "skills": ["Python", "FastAPI", "PostgreSQL"]
+        "description": "Designed and maintained high-throughput REST APIs using FastAPI and PostgreSQL. Containerized microservice deployments with Docker and Kubernetes.",
+        "skills": ["Fastapi", "Postgresql", "Docker", "Kubernetes", "Rest Apis"]
+      },
+      {
+        "title": "Software Developer",
+        "company": "AppLabs",
+        "location": null,
+        "start_date": "2019",
+        "end_date": "2022",
+        "is_current": false,
+        "description": "Built backend business logic in Python and optimized SQL relational queries.",
+        "skills": ["Python", "Sql"]
       }
     ],
     "projects": [
       {
         "name": "E-Commerce Microservices",
-        "description": "Scalable distributed order processing engine.",
-        "technologies": ["Python", "FastAPI", "Docker"],
+        "description": "Scalable distributed order processing engine built with FastAPI and Docker.",
+        "technologies": ["Fastapi", "Docker"],
         "url": null,
         "start_date": null,
         "end_date": null
       }
     ],
-    "certifications": [],
+    "certifications": [
+      {
+        "name": "AWS Certified Solutions Architect",
+        "issuing_organization": "Amazon Web Services",
+        "issue_date": "2023",
+        "credential_id": null,
+        "url": null
+      }
+    ],
     "achievements": []
   },
   "extraction_metadata": {
