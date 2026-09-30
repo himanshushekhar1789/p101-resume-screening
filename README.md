@@ -89,7 +89,108 @@ curl -X POST "http://127.0.0.1:8000/api/v1/resumes/parse" \
 
 ---
 
-## 4. Project Directory Structure
+## 4. Structured Resume Extraction (Phase 3)
+
+The raw text extracted from documents is analyzed through a layered architecture to build a validated `CandidateProfile`:
+
+1. **Deterministic Rule Extraction**:
+   - **Contact & Identifiers**: Extracts clean email addresses, telephone numbers, and profile URLs (LinkedIn, GitHub) via regex.
+   - **Section Segmentation**: Locates and segments resume sections (Summary, Technical Skills, Experience, Education, Projects, Certifications, Achievements) using header heuristics.
+2. **LLM Reasoning & Provider Abstraction**:
+   - Provider abstraction supporting **Google Gemini** (`gemini-1.5-flash`), **OpenAI** (`gpt-4o-mini`), and an offline **Mock Client**.
+   - Centralized, versioned prompt template (`backend/app/ai/prompts/resume_extraction.txt`).
+   - Strict zero-hallucination instructions: extracts only explicit facts, preserves nulls for missing values, and categorizes skills.
+3. **Pydantic Validation & Ground-Truth Reconciliation**:
+   - Cleans JSON strings, strips markdown formatting, and validates against `CandidateProfile`.
+   - Merges deterministic regex findings to safeguard against omission.
+
+### Supported Profile Fields
+- **Personal Info**: `name`, `email` (RFC format-validated), `phone` (standardized string), `location`, `linkedin_url`, `github_url`.
+- **Summary**: Professional summary / career objective.
+- **Skills**: Skill list with category classification (`programming_language`, `framework`, `database`, `tool`, `cloud`, `devops`, `ai_ml`, `other`).
+- **Education**: Degree, institution, field of study, start/end years, grade.
+- **Experience**: Job title, company, location, start/end dates, current role flag, description, skills mentioned.
+- **Projects**: Project title, description, technologies used, URL, dates.
+- **Certifications**: Credential name, issuing organization, dates, credential ID.
+- **Achievements**: Awards, competitions, publications.
+
+### Extraction API Example
+
+#### Request (`POST /api/v1/resumes/extract`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/resumes/extract" \
+     -F "file=@data/sample/resumes/synthetic_software_engineer.pdf"
+```
+
+#### Response (`200 OK`)
+```json
+{
+  "filename": "synthetic_software_engineer.pdf",
+  "file_type": "pdf",
+  "profile": {
+    "personal_info": {
+      "name": "David Vance",
+      "email": "david.vance@example-dev.org",
+      "phone": "+1 (555) 234-5678",
+      "location": null,
+      "linkedin_url": "https://linkedin.com/in/david-vance-dev",
+      "github_url": "https://github.com/davidvance"
+    },
+    "summary": "Backend Software Engineer with 5+ years building scalable microservices using Python, FastAPI, and PostgreSQL.",
+    "skills": [
+      { "name": "Python", "category": "programming_language" },
+      { "name": "FastAPI", "category": "framework" },
+      { "name": "PostgreSQL", "category": "database" },
+      { "name": "Docker", "category": "devops" },
+      { "name": "AWS", "category": "cloud" }
+    ],
+    "education": [
+      {
+        "degree": "B.Tech",
+        "institution": "State Tech University",
+        "field": "Computer Science",
+        "start_year": 2015,
+        "end_year": 2019,
+        "grade": null
+      }
+    ],
+    "experience": [
+      {
+        "title": "Senior Software Engineer - CloudCorp (2022 - Present)",
+        "company": "CloudCorp",
+        "location": null,
+        "start_date": "2022",
+        "end_date": null,
+        "is_current": true,
+        "description": "Designed and maintained high-throughput REST APIs.",
+        "skills": ["Python", "FastAPI", "PostgreSQL"]
+      }
+    ],
+    "projects": [
+      {
+        "name": "E-Commerce Microservices",
+        "description": "Scalable distributed order processing engine.",
+        "technologies": ["Python", "FastAPI", "Docker"],
+        "url": null,
+        "start_date": null,
+        "end_date": null
+      }
+    ],
+    "certifications": [],
+    "achievements": []
+  },
+  "extraction_metadata": {
+    "character_count": 1098,
+    "word_count": 138,
+    "page_count": 1,
+    "llm_provider": "mock"
+  }
+}
+```
+
+---
+
+## 5. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -117,7 +218,7 @@ p101-resume-screening/
 │   │   │   └── routes/
 │   │   │       ├── __init__.py
 │   │   │       ├── health.py          # Health check & DB connectivity endpoint
-│   │   │       └── resumes.py         # Resume document parsing endpoint (/api/v1/resumes/parse)
+│   │   │       └── resumes.py         # Parse & Extract endpoints (/parse, /extract)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -127,14 +228,15 @@ p101-resume-screening/
 │   │   ├── ai/
 │   │   │   ├── __init__.py
 │   │   │   ├── llm_client.py          # Provider abstraction (Gemini, OpenAI, Mock)
-│   │   │   ├── hybrid_engine.py
-│   │   │   ├── validators.py
-│   │   │   └── prompts/               # Centralized, versioned prompt templates
+│   │   │   ├── validators.py          # JSON sanitization and Pydantic validation
+│   │   │   └── prompts/
+│   │   │       └── resume_extraction.txt # Versioned extraction prompt
 │   │   │
 │   │   └── services/                  # Core business logic services
 │   │       ├── __init__.py
 │   │       ├── document_parser.py     # PDF/DOCX parsing, validation & sanitization
-│   │       ├── resume_parser.py
+│   │       ├── rule_extractor.py      # Regex & heading segmentation rules
+│   │       ├── resume_extractor.py    # Hybrid rule + LLM profile extraction
 │   │       ├── jd_analyzer.py
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
@@ -147,17 +249,19 @@ p101-resume-screening/
 │   └── tests/
 │       ├── __init__.py
 │       ├── test_health.py             # System health and schema creation tests
-│       └── test_document_parser.py    # PDF, DOCX, validation & endpoint tests
+│       ├── test_document_parser.py    # PDF, DOCX, validation & parse endpoint tests
+│       └── test_resume_extractor.py   # Schema, rule, LLM validation & extraction tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
-│   └── sample/                # Synthetic test resumes and annotations
+│   └── sample/
+│       └── resumes/           # Diverse synthetic test resumes (.pdf, .docx)
 └── scripts/                   # Evaluation and utility scripts
 ```
 
 ---
 
-## 5. Getting Started
+## 6. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -215,11 +319,11 @@ pytest backend/tests/ -v
 
 ---
 
-## 6. Development Roadmap & Incremental Phases
+## 7. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
-- [ ] **Phase 3: Structured Resume Information Extraction**
+- [x] **Phase 3: Structured Resume Information Extraction**
 - [ ] **Phase 4: Job Description Analysis & Requirement Extraction**
 - [ ] **Phase 5: Skill Normalization & Taxonomy Mapping**
 - [ ] **Phase 6: Deterministic Rule Engine**

@@ -53,3 +53,37 @@ The test suite in `backend/tests/test_document_parser.py` validates text extract
 | `test_api_parse_scanned_pdf` | REST API | Scanned/blank PDF upload | HTTP 422 Unprocessable Content alerting user to scanned format |
 | `test_api_parse_corrupt_file` | REST API | Malformed PDF upload | HTTP 400 Bad Request |
 
+---
+
+## 5. Phase 3: Structured Resume Extraction Evaluation
+
+### 5.1 LLM Mocking Strategy for CI/CD & Testing
+To guarantee deterministic, ultra-fast, and cost-free test executions, the test suite never relies on live paid LLM API calls:
+- `MockLLMClient` is injected during unit and integration tests.
+- It operates in two modes:
+  1. **Pre-queued Responses**: Injects custom JSON or corrupted text strings to simulate failure, malformed output, or edge cases.
+  2. **Heuristic Parsing Fallback**: Uses regex and section boundaries to parse raw resume text into valid candidate profiles, enabling realistic end-to-end tests without external network calls.
+
+### 5.2 Phase 3 Test Matrix (`backend/tests/test_resume_extractor.py`)
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_candidate_profile_valid` | Schema | Complete profile with all nested models | Validates and instantiates without errors |
+| `test_candidate_profile_missing_optional_fields` | Schema | Profile with omitted optional fields | Defaults smoothly to None and empty lists |
+| `test_candidate_profile_invalid_email` | Schema | Malformed email string | Raises `ValueError` via field validator |
+| `test_candidate_profile_phone_string_conversion` | Schema | Integer phone input (`9876543210`) | Converts to string via `mode='before'` validator |
+| `test_extract_email` | Rule Extractor | Realistic email in messy text | Extracts canonical lowercase email |
+| `test_extract_phone` | Rule Extractor | US and international phone formats | Extracts clean phone string |
+| `test_extract_links` | Rule Extractor | Text containing LinkedIn and GitHub URLs | Maps URLs to respective dictionary keys |
+| `test_extract_sections` | Rule Extractor | Multi-section resume text | Slices resume into Summary, Skills, Experience, Education |
+| `test_validate_llm_json_clean` | Validator | Plain JSON string from LLM | Successfully parses into `CandidateProfile` |
+| `test_validate_llm_json_markdown_wrapped` | Validator | JSON wrapped in ````json ... ```` blocks | Strips markdown fences and parses cleanly |
+| `test_validate_llm_json_malformed` | Validator | Broken JSON syntax from LLM | Raises `LLMValidationError` |
+| `test_validate_llm_json_schema_error` | Validator | JSON payload with invalid schema values | Catches Pydantic validation errors |
+| `test_extract_candidate_profile_service` | Service | Raw text processed with `MockLLMClient` | Returns complete, grounded `CandidateProfile` |
+| `test_api_extract_synthetic_pdf` | REST API | Synthetic Software Engineer PDF upload | HTTP 200 with extracted skills, experience, education |
+| `test_api_extract_synthetic_docx` | REST API | Synthetic Frontend Developer DOCX upload | HTTP 200 with table-extracted skills and experience |
+| `test_api_extract_unsupported_format` | REST API | Non-resume file format upload | HTTP 400 Bad Request |
+| `test_api_extract_scanned_pdf` | REST API | Blank/scanned PDF upload | HTTP 422 Unprocessable Content |
+
+

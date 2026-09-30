@@ -66,6 +66,81 @@ Extract text and structural metrics from an uploaded `.pdf` or `.docx` resume fi
   - `413 Payload Too Large`: File exceeds configured maximum size limit (default 10 MB)
   - `422 Unprocessable Content`: Scanned/image-only PDF with no extractable text layer
 
+### `POST /resumes/extract`
+Parses and transforms an uploaded `.pdf` or `.docx` resume into a structured, validated candidate profile (`CandidateProfile`).
+
+- **Request**: Multipart Form Data: `file: UploadFile`
+- **Supported MIME Types**: `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- **Response (200 OK)**:
+```json
+{
+  "filename": "synthetic_software_engineer.pdf",
+  "file_type": "pdf",
+  "profile": {
+    "personal_info": {
+      "name": "David Vance",
+      "email": "david.vance@example-dev.org",
+      "phone": "+1 (555) 234-5678",
+      "location": null,
+      "linkedin_url": "https://linkedin.com/in/david-vance-dev",
+      "github_url": "https://github.com/davidvance"
+    },
+    "summary": "Backend Software Engineer with 5+ years building scalable microservices using Python, FastAPI, and PostgreSQL.",
+    "skills": [
+      { "name": "Python", "category": "programming_language" },
+      { "name": "FastAPI", "category": "framework" },
+      { "name": "PostgreSQL", "category": "database" },
+      { "name": "Docker", "category": "devops" }
+    ],
+    "education": [
+      {
+        "degree": "B.Tech",
+        "institution": "State Tech University",
+        "field": "Computer Science",
+        "start_year": 2015,
+        "end_year": 2019,
+        "grade": null
+      }
+    ],
+    "experience": [
+      {
+        "title": "Senior Software Engineer - CloudCorp (2022 - Present)",
+        "company": "CloudCorp",
+        "location": null,
+        "start_date": "2022",
+        "end_date": null,
+        "is_current": true,
+        "description": "Designed and maintained high-throughput REST APIs.",
+        "skills": ["Python", "FastAPI", "PostgreSQL"]
+      }
+    ],
+    "projects": [
+      {
+        "name": "E-Commerce Microservices",
+        "description": "Scalable order processing engine.",
+        "technologies": ["Python", "FastAPI", "Docker"],
+        "url": null,
+        "start_date": null,
+        "end_date": null
+      }
+    ],
+    "certifications": [],
+    "achievements": []
+  },
+  "extraction_metadata": {
+    "character_count": 1098,
+    "word_count": 138,
+    "page_count": 1,
+    "llm_provider": "mock"
+  }
+}
+```
+- **Error Responses**:
+  - `400 Bad Request`: Empty file, corrupt file, or unsupported file format
+  - `413 Payload Too Large`: Uploaded file exceeds size ceiling
+  - `422 Unprocessable Content`: Scanned/image-only PDF or schema validation failure
+  - `503 Service Unavailable`: AI provider unreachable
+
 ### `POST /jobs/{id}/resumes`
 Upload one or multiple resumes (`.pdf`, `.docx`) associated with a job posting.
 - **Form Data**: `files: List[UploadFile]`

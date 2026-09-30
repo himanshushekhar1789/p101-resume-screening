@@ -1,6 +1,7 @@
+import re
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 # ---------------------------------------------------------
@@ -87,8 +88,104 @@ class JobResponse(JobBase):
 
 
 # ---------------------------------------------------------
-# Candidate Profile Schemas
+# Candidate Profile Schemas (Phase 3)
 # ---------------------------------------------------------
+class PersonalInfo(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(pattern, v):
+            raise ValueError(f"Invalid email address format: '{v}'")
+        return v
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def validate_phone_format(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        return str(v).strip()
+
+
+class SkillItem(BaseModel):
+    name: str
+    category: Optional[str] = Field(
+        default="other",
+        description="programming_language, framework, library, database, tool, cloud, devops, ai_ml, soft_skill, other",
+    )
+
+
+class EducationItem(BaseModel):
+    degree: Optional[str] = None
+    institution: Optional[str] = None
+    field: Optional[str] = None
+    start_year: Optional[int] = None
+    end_year: Optional[int] = None
+    grade: Optional[str] = None
+
+
+class ExperienceItem(BaseModel):
+    title: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    is_current: bool = False
+    description: Optional[str] = None
+    skills: List[str] = []
+
+
+class ProjectItem(BaseModel):
+    name: str
+    description: Optional[str] = None
+    technologies: List[str] = []
+    url: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+
+
+class CertificationItem(BaseModel):
+    name: str
+    issuing_organization: Optional[str] = None
+    issue_date: Optional[str] = None
+    credential_id: Optional[str] = None
+    url: Optional[str] = None
+
+
+class AchievementItem(BaseModel):
+    title: str
+    description: Optional[str] = None
+    date: Optional[str] = None
+
+
+class CandidateProfile(BaseModel):
+    personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
+    summary: Optional[str] = None
+    skills: List[SkillItem] = []
+    education: List[EducationItem] = []
+    experience: List[ExperienceItem] = []
+    projects: List[ProjectItem] = []
+    certifications: List[CertificationItem] = []
+    achievements: List[AchievementItem] = []
+
+
+class ResumeExtractionResponse(BaseModel):
+    filename: str
+    file_type: str
+    profile: CandidateProfile
+    extraction_metadata: Optional[Dict[str, Any]] = None
+
+
 class ProfileBase(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
@@ -106,6 +203,7 @@ class ProfileResponse(ProfileBase):
     candidate_id: int
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 # ---------------------------------------------------------

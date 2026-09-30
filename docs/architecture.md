@@ -67,7 +67,36 @@ Clean Extracted Text & Metadata (character count, word count, page count)
 Downstream Information Extraction & Screening Pipelines
 ```
 
-## 3. Hybrid AI Engine Layers
+## 3. Structured Resume Extraction Pipeline (Phase 3)
+
+The raw text extracted from documents is converted into a validated `CandidateProfile` through a 5-stage layered extraction pipeline:
+
+```text
+Document Parser
+      ↓
+Raw Resume Text
+      ↓
+Deterministic / Rule Extraction (backend/app/services/rule_extractor.py)
+      ├── Regex Email & Phone extraction
+      ├── LinkedIn & GitHub profile links
+      └── Headings & Section segmentation (Summary, Skills, Experience, Education, etc.)
+      ↓
+LLM Extraction Layer (backend/app/ai/llm_client.py + prompts/resume_extraction.txt)
+      ├── Strict grounding: extract only explicit data without inference
+      ├── Categorizes skills (programming_language, framework, devops, database, etc.)
+      └── Extracts complex entities (nested experience, education, projects, achievements)
+      ↓
+JSON Sanitization & Pydantic Validation (backend/app/ai/validators.py)
+      ├── Strips markdown codeblocks & locates outermost JSON boundaries
+      └── Enforces strict validation against CandidateProfile schema
+      ↓
+Ground-Truth Reconciliation (backend/app/services/resume_extractor.py)
+      └── Merges and guarantees deterministic rule extractions (email/phone/links)
+      ↓
+Validated Candidate Profile (CandidateProfile)
+```
+
+## 4. Hybrid AI Engine Layers
 
 The decision pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 4-layer architecture:
 
