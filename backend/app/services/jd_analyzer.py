@@ -20,6 +20,7 @@ from backend.app.services.jd_rule_extractor import (
     detect_priority,
     parse_job_profile_rules,
 )
+from backend.app.services.skill_normalizer import normalize_job_skills
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,9 @@ def reconcile_job_profile(
 
     profile.must_have = must_have
     profile.nice_to_have = nice_to_have
+
+    # 9. Skill normalization & deduplication (Phase 5)
+    profile.normalized_skills = normalize_job_skills(profile.skills)
 
     return profile
 

@@ -333,7 +333,99 @@ curl -X POST "http://127.0.0.1:8000/api/v1/jobs/analyze/upload" \
 
 ---
 
-## 6. Project Directory Structure
+## 6. Skill Normalization & Taxonomy Mapping (Phase 5)
+
+Phase 5 establishes a common, machine-comparable canonical representation for skills across resumes and job descriptions:
+
+1. **Deterministic Skill Standardization**:
+   - Case & whitespace normalization (`PYTHON`, `  python  ` $\rightarrow$ `Python`).
+   - Conservative alias resolution (`JS` $\rightarrow$ `JavaScript`, `K8s` $\rightarrow$ `Kubernetes`, `GCP` $\rightarrow$ `Google Cloud`, `NLP` $\rightarrow$ `Natural Language Processing`).
+   - Version stripping (`Python 3.11` $\rightarrow$ `Python`, `React 18` $\rightarrow$ `React`).
+   - Punctuation sensitivity (`C++` $\neq$ `C`, `C#` $\neq$ `C`, `.NET` $\neq$ `Node.js`).
+2. **Authoritative Taxonomy Categories**:
+   - Strictly enforces 10 canonical categories: `programming_language`, `framework`, `library`, `database`, `tool`, `cloud`, `devops`, `ai_ml`, `soft_skill`, `other`.
+3. **Deduplication with Provenance**:
+   - Preserves all original strings in `original_names` (e.g. `['Python', 'python', 'Python 3']`).
+   - For job descriptions, merges duplicate requirements with `must_have` precedence and maximum required years of experience.
+4. **Zero-Hallucination Unknown Skill Protection**:
+   - Unregistered skills retain their clean original text with `normalization_method="unknown"` and `confidence=0.5`.
+5. **False-Positive Word Guard**:
+   - Prevents ordinary resume/JD words (`experience`, `work`, `team`, `cloud`, `data`) occurring alone from becoming technical skills.
+
+### Skill Normalization API Examples
+
+#### 1. Standalone Skill Normalization (`POST /api/v1/skills/normalize`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/skills/normalize" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "skills": ["py", "python", "Python 3.11", "js", "Postgres", "k8s", "Docker"],
+       "source": "manual"
+     }'
+```
+
+#### Sample Response (`200 OK`)
+```json
+{
+  "count": 5,
+  "normalized_skills": [
+    {
+      "canonical_name": "Python",
+      "original_name": "py",
+      "original_names": ["py", "python", "Python 3.11"],
+      "category": "programming_language",
+      "normalization_method": "alias",
+      "confidence": 1.0,
+      "source": "manual"
+    },
+    {
+      "canonical_name": "JavaScript",
+      "original_name": "js",
+      "original_names": ["js"],
+      "category": "programming_language",
+      "normalization_method": "alias",
+      "confidence": 1.0,
+      "source": "manual"
+    },
+    {
+      "canonical_name": "PostgreSQL",
+      "original_name": "Postgres",
+      "original_names": ["Postgres"],
+      "category": "database",
+      "normalization_method": "alias",
+      "confidence": 1.0,
+      "source": "manual"
+    },
+    {
+      "canonical_name": "Kubernetes",
+      "original_name": "k8s",
+      "original_names": ["k8s"],
+      "category": "devops",
+      "normalization_method": "alias",
+      "confidence": 1.0,
+      "source": "manual"
+    },
+    {
+      "canonical_name": "Docker",
+      "original_name": "Docker",
+      "original_names": ["Docker"],
+      "category": "devops",
+      "normalization_method": "exact",
+      "confidence": 1.0,
+      "source": "manual"
+    }
+  ]
+}
+```
+
+#### 2. Inspect Canonical Skill Taxonomy (`GET /api/v1/skills/taxonomy`)
+```bash
+curl -X GET "http://127.0.0.1:8000/api/v1/skills/taxonomy"
+```
+
+---
+
+## 7. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -362,7 +454,8 @@ p101-resume-screening/
 │   │   │       ├── __init__.py
 │   │   │       ├── health.py          # Health check & DB connectivity endpoint
 │   │   │       ├── resumes.py         # Parse & Extract endpoints (/parse, /extract)
-│   │   │       └── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
+│   │   │       ├── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
+│   │   │       └── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -384,6 +477,8 @@ p101-resume-screening/
 │   │       ├── resume_extractor.py    # Hybrid rule + LLM profile extraction
 │   │       ├── jd_rule_extractor.py   # Job description rule & section extraction
 │   │       ├── jd_analyzer.py         # Job description analysis orchestration
+│   │       ├── skill_taxonomy.py      # Centralized canonical skill registry
+│   │       ├── skill_normalizer.py    # Skill normalization & deduplication service
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -397,7 +492,8 @@ p101-resume-screening/
 │       ├── test_health.py             # System health and schema creation tests
 │       ├── test_document_parser.py    # PDF, DOCX, validation & parse endpoint tests
 │       ├── test_resume_extractor.py   # Resume schema, rule, LLM validation & extraction tests
-│       └── test_jd_analyzer.py        # Job description analysis and API tests
+│       ├── test_jd_analyzer.py        # Job description analysis and API tests
+│       └── test_skill_normalizer.py   # Skill normalization and taxonomy tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -409,7 +505,7 @@ p101-resume-screening/
 
 ---
 
-## 6. Getting Started
+## 8. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -467,13 +563,13 @@ pytest backend/tests/ -v
 
 ---
 
-## 7. Development Roadmap & Incremental Phases
+## 9. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
 - [x] **Phase 3: Structured Resume Information Extraction**
 - [x] **Phase 4: Job Description Analysis & Requirement Extraction**
-- [ ] **Phase 5: Skill Normalization & Taxonomy Mapping**
+- [x] **Phase 5: Skill Normalization & Taxonomy Mapping**
 - [ ] **Phase 6: Deterministic Rule Engine**
 - [ ] **Phase 7: Embedding-Based Semantic Matching**
 - [ ] **Phase 8: Multi-Layer Hybrid Fusion Scoring**

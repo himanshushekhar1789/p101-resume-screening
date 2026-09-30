@@ -1,4 +1,5 @@
 import re
+from enum import Enum
 from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
@@ -200,10 +201,86 @@ class AchievementItem(BaseModel):
     date: Optional[str] = None
 
 
+# ---------------------------------------------------------
+# Skill Normalization Schemas (Phase 5)
+# ---------------------------------------------------------
+RequirementPriority = Literal["must_have", "nice_to_have"]
+
+
+class NormalizationMethod(str, Enum):
+    EXACT = "exact"
+    CASE_NORMALIZED = "case_normalized"
+    ALIAS = "alias"
+    VERSION_STRIPPED = "version_stripped"
+    UNKNOWN = "unknown"
+
+
+class NormalizedSkill(BaseModel):
+    """Canonical representation of an extracted candidate skill with provenance."""
+    canonical_name: str = Field(..., description="Standardized canonical skill name from taxonomy")
+    original_name: str = Field(..., description="First or primary original skill string extracted")
+    original_names: List[str] = Field(default_factory=list, description="All original text variants merged into this canonical skill")
+    category: str = Field(default="other", description="Standardized category from VALID_SKILL_CATEGORIES")
+    normalization_method: str = Field(default="exact", description="'exact', 'case_normalized', 'alias', 'version_stripped', 'unknown'")
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Confidence score of normalization (1.0 for registry match, 0.5 for unknown)")
+    source: Optional[str] = Field(default="resume", description="'resume', 'job_description', or other provenance")
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> str:
+        if not v:
+            return "other"
+        cleaned = str(v).strip().lower()
+        return cleaned if cleaned in VALID_SKILL_CATEGORIES else "other"
+
+
+class NormalizedJobSkill(BaseModel):
+    """Canonical representation of an extracted job skill requirement with priority and provenance."""
+    canonical_name: str = Field(..., description="Standardized canonical skill name from taxonomy")
+    original_name: str = Field(..., description="First or primary original skill string extracted from JD")
+    original_names: List[str] = Field(default_factory=list, description="All original text variants from JD merged into this canonical requirement")
+    category: str = Field(default="other", description="Standardized category from VALID_SKILL_CATEGORIES")
+    priority: RequirementPriority = Field(default="must_have", description="'must_have' or 'nice_to_have'")
+    minimum_years: Optional[float] = Field(default=None, ge=0.0, description="Minimum required years if specified in JD")
+    evidence: Optional[str] = Field(default=None, description="Exact phrase or sentence from the JD")
+    normalization_method: str = Field(default="exact", description="'exact', 'case_normalized', 'alias', 'version_stripped', 'unknown'")
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Confidence score of normalization")
+    source: Optional[str] = Field(default="job_description", description="Provenance indicator")
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> str:
+        if not v:
+            return "other"
+        cleaned = str(v).strip().lower()
+        return cleaned if cleaned in VALID_SKILL_CATEGORIES else "other"
+
+    @field_validator("priority", mode="before")
+    @classmethod
+    def validate_priority(cls, v: Any) -> str:
+        if not v:
+            return "must_have"
+        cleaned = str(v).strip().lower().replace("-", "_")
+        if any(w in cleaned for w in ["preferred", "nice", "bonus", "plus", "optional", "desired", "good_to_have"]):
+            return "nice_to_have"
+        return "must_have"
+
+
+class SkillNormalizeRequest(BaseModel):
+    skills: List[str] = Field(..., min_length=1, description="List of raw skill strings to normalize")
+    source: Optional[str] = Field(default="manual", description="Source/provenance of skills")
+
+
+class SkillNormalizeResponse(BaseModel):
+    count: int
+    normalized_skills: List[NormalizedSkill]
+
+
 class CandidateProfile(BaseModel):
     personal_info: PersonalInfo = Field(default_factory=PersonalInfo)
     summary: Optional[str] = None
     skills: List[SkillItem] = []
+    normalized_skills: List[NormalizedSkill] = []
     education: List[EducationItem] = []
     experience: List[ExperienceItem] = []
     projects: List[ProjectItem] = []
@@ -310,7 +387,6 @@ class CandidateDetailResponse(BaseModel):
 # Job Description & Requirements Schemas (Phase 4)
 # ---------------------------------------------------------
 
-RequirementPriority = Literal["must_have", "nice_to_have"]
 RequirementType = Literal[
     "skill",
     "experience",
@@ -470,6 +546,7 @@ class JobProfile(BaseModel):
     location: Optional[str] = None
     summary: Optional[str] = None
     skills: List[JobSkillRequirement] = []
+    normalized_skills: List[NormalizedJobSkill] = []
     experience_requirements: List[JobExperienceRequirement] = []
     education_requirements: List[JobEducationRequirement] = []
     certification_requirements: List[JobCertificationRequirement] = []

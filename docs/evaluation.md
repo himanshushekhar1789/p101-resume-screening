@@ -149,5 +149,52 @@ All 4 benchmark JDs were evaluated through both text and uploaded document forma
 - **Zero Hallucination Rate**: 0% hallucinated certifications or degrees when absent from the input text.
 - **Responsibilities Separation**: Cleanly separated job responsibilities from qualification criteria.
 
+---
+
+## 7. Phase 5: Skill Normalization & Taxonomy Mapping Evaluation
+
+### 7.1 Normalization Architecture & Benchmarks
+Phase 5 introduces deterministic skill standardization without LLM dependencies:
+- **Canonical Skill Registry**: Centralized repository of >90 software engineering, data science, DevOps, and cloud competencies across 10 controlled categories.
+- **Alias Resolution**: Conservative mapping of acronyms (`JS` $\rightarrow$ `JavaScript`, `K8s` $\rightarrow$ `Kubernetes`, `GCP` $\rightarrow$ `Google Cloud`, `NLP` $\rightarrow$ `Natural Language Processing`).
+- **Version Stripping**: Standardized handling of versions (`Python 3.11` $\rightarrow$ `Python`, `React 18` $\rightarrow$ `React`).
+- **Punctuation Sensitivity**: Exact differentiation of technical punctuation (`C++` $\neq$ `C`, `C#` $\neq$ `C`, `.NET` $\neq$ `Node.js`).
+- **Deduplication with Provenance**: Merging redundant variants into single canonical records while preserving all extracted textual forms in `original_names`.
+
+### 7.2 Phase 5 Test Matrix (`backend/tests/test_skill_normalizer.py`)
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_clean_skill_string` | String Sanitizer | Leading bullets, numbers, whitespace, technical punctuation | Cleans formatting while preserving `C++`, `C#`, `.NET`, `CI/CD` |
+| `test_basic_case_and_casing_normalization` | Normalizer | `Python`, `python`, `PYTHON`, `  pYtHoN  ` | Normalizes to `Python` (`programming_language`, conf 1.0) |
+| `test_safe_alias_mappings` | Taxonomy | 23 real-world aliases (`JS`, `TS`, `Postgres`, `GCP`, `K8s`, `NLP`, `ML`, etc.) | 100% accurate canonical name and category resolution |
+| `test_version_normalization` | Normalizer | `Python 3.11`, `React 18`, `Postgres 15`, `Vue 3`, `Java 17` | Strips version to base canonical identity |
+| `test_punctuation_sensitive_skills_separation` | Normalizer | `C`, `C++`, `c ++`, `C#`, `c #`, `.NET`, `Node.js`, `Next.js` | Zero accidental merges; distinct canonical representations |
+| `test_unknown_skill_zero_hallucination` | Fallback | Unregistered technologies (`CustomInternalGraphEngine`) | Preserves original text, `method="unknown"`, `confidence=0.5`, 0 hallucination |
+| `test_category_consistency_from_registry` | Taxonomy | Misclassified input categories (e.g., Python as 'other') | Registry overrides and enforces authoritative category |
+| `test_false_positive_protection` | Stopwords | Isolated words like `experience`, `work`, `team`, `cloud`, `data` | Rejected and cleanly discarded from skills |
+| `test_candidate_skill_deduplication` | Deduplication | Candidate with `Python`, `python`, `Python 3`, `K8s`, `Kubernetes` | Deduplicates to 3 canonical skills; merges `original_names` |
+| `test_job_skill_deduplication_precedence` | Deduplication | JD with `Python` (must_have, 5yr) and `Python 3` (nice_to_have, 3yr) | `must_have` wins; max years (5.0) wins; evidence combined |
+| `test_candidate_profile_pipeline_populates_normalized_skills` | Pipeline Integration | Synthetic resume parsed through `extract_candidate_profile()` | `profile.skills` preserved; `profile.normalized_skills` populated |
+| `test_job_profile_pipeline_populates_normalized_skills` | Pipeline Integration | Synthetic JD parsed through `analyze_job_description()` | `profile.skills` preserved; `profile.normalized_skills` populated |
+| `test_api_normalize_skills_endpoint` | REST API | `POST /api/v1/skills/normalize` with JSON list of strings | HTTP 200 with canonical names, methods, and confidence |
+| `test_api_taxonomy_endpoint` | REST API | `GET /api/v1/skills/taxonomy` | HTTP 200 with all categories and registered skills |
+| `test_e2e_synthetic_resumes_normalization` | End-to-End | Normalizing all 4 synthetic resumes (`.pdf` and `.docx`) | 100% success; key competencies accurately normalized |
+| `test_e2e_synthetic_jds_normalization` | End-to-End | Normalizing all 4 synthetic JDs (`.txt`, `.pdf`, `.docx`) | 100% success; aliases and versions merged without loss |
+
+### 7.3 Synthetic Datasets Normalization Audit
+
+| Dataset Item | Extracted Skills | Normalized Skills | Notable Normalization & Deduplication Events |
+|---|---|---|---|
+| **Synthetic Software Engineer** (`.pdf`) | 14 | 14 | `PostgreSQL`, `FastAPI`, `Docker`, `Kubernetes`, `AWS`, `REST APIs`, `Microservices` confirmed canonical |
+| **Synthetic Frontend Developer** (`.docx`) | 12 | 11 | `HTML5` $\rightarrow$ `HTML`; `CSS3` & `CSS` merged into `CSS`; `Next.js` and `Tailwind CSS` preserved |
+| **Synthetic Data Scientist** (`.pdf`) | 9 | 9 | `NLP` $\rightarrow$ `Natural Language Processing` (alias); `GCP` $\rightarrow$ `Google Cloud` (alias) |
+| **Synthetic Junior Intern** (`.docx`) | 9 | 9 | `Sqlite` $\rightarrow$ `SQLite`; `C` strictly separated from `C++` |
+| **Backend Engineer JD** (`.txt`) | 15 | 15 | `GCP` $\rightarrow$ `Google Cloud`; `CI/CD` and `Mentorship` categorized; priorities intact |
+| **Data Scientist JD** (`.txt`) | 16 | 15 | `NLP` and `Natural Language Processing` merged into 1 requirement with both evidence lines |
+| **Frontend Developer JD** (`.txt`) | 11 | 9 | `JavaScript` & `Js` merged; `CSS` & `CSS3` merged; 2.0 min years preserved |
+| **Entry Level Intern JD** (`.txt`) | 7 | 7 | `Problem Solving` $\rightarrow$ `soft_skill`; `Agile` $\rightarrow$ `other`; `C`, `Java`, `Python` canonical |
+
+
 
 

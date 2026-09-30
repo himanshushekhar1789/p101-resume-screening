@@ -173,7 +173,95 @@ Validated Job Profile (JobProfile)
 - Daily job responsibilities (e.g., *"Design scalable REST APIs"*, *"Mentor junior engineers"*) are captured strictly within the `responsibilities` collection.
 - Responsibilities do **not** automatically pollute the `skills` list as mandatory qualifications, keeping task scope cleanly decoupled from applicant prerequisites for downstream matching.
 
-## 5. Hybrid AI Engine Layers (Future Phases)
+---
+
+## 5. Skill Normalization & Taxonomy Mapping (Phase 5)
+
+Phase 5 introduces a common, canonical representation for both candidate skills and job requirements:
+
+```
+                    RESUME                                    JOB
+                       │                                       │
+                       ▼                                       ▼
+                CandidateProfile                           JobProfile
+                 (raw skills)                            (raw requirements)
+                       │                                       │
+                       ▼                                       ▼
+              ┌─────────────────┐                     ┌─────────────────┐
+              │ Skill Normalizer│                     │ Skill Normalizer│
+              │  & Taxonomy     │                     │  & Taxonomy     │
+              └─────────────────┘                     └─────────────────┘
+                       │                                       │
+                       ▼                                       ▼
+               Canonical Skills                        Canonical Skills
+              (NormalizedSkill)                       (NormalizedJobSkill)
+                       │                                       │
+                       └───────────────────┬───────────────────┘
+                                           │
+                                           ▼
+                               Future Phase 6: Matching
+```
+
+### 5.1 Why Normalization Exists
+Raw resumes and job postings frequently describe identical competencies using varying capitalization, acronyms, and formatting:
+- Capitalization: `python`, `Python`, `PYTHON` $\rightarrow$ `Python`
+- Aliases & Acronyms: `JS`, `js`, `ECMAScript` $\rightarrow$ `JavaScript`; `K8s` $\rightarrow$ `Kubernetes`; `GCP` $\rightarrow$ `Google Cloud`; `Postgres` $\rightarrow$ `PostgreSQL`
+- Version Numbers: `Python 3.11`, `Python 3.x` $\rightarrow$ `Python`; `React 18` $\rightarrow$ `React`; `Postgres 14` $\rightarrow$ `PostgreSQL`
+- Spaced Punctuation: `c ++` $\rightarrow$ `C++`; `c #` $\rightarrow$ `C#`
+
+Without normalization, downstream matching algorithms either fail to recognize synonyms or generate inaccurate skill-gap penalties.
+
+### 5.2 Canonical Skill Representation
+Every normalized skill maintains strict provenance:
+```json
+{
+  "canonical_name": "Python",
+  "original_name": "Python 3.11",
+  "original_names": ["Python", "python", "Python 3.11"],
+  "category": "programming_language",
+  "normalization_method": "version_stripped",
+  "confidence": 1.0,
+  "source": "resume"
+}
+```
+
+For job descriptions, the requirement attributes are preserved and deduplicated:
+```json
+{
+  "canonical_name": "Python",
+  "original_name": "Python",
+  "original_names": ["Python", "Python 3"],
+  "category": "programming_language",
+  "priority": "must_have",
+  "minimum_years": 5.0,
+  "evidence": "5+ years Python required; Python 3 experience is a plus",
+  "normalization_method": "exact",
+  "confidence": 1.0,
+  "source": "job_description"
+}
+```
+
+### 5.3 Controlled Taxonomy & Authoritative Categories
+Skills are mapped into 10 controlled categories:
+`programming_language`, `framework`, `library`, `database`, `tool`, `cloud`, `devops`, `ai_ml`, `soft_skill`, `other`.
+- The taxonomy registry (`skill_taxonomy.py`) is authoritative. If an upstream extractor miscategorizes `FastAPI` as `tool` or `Python` as `other`, normalization assigns the verified category (`framework` and `programming_language` respectively).
+
+### 5.4 Deduplication & Precedence Rules
+- **Candidate Skills**: Multiple occurrences (`Python`, `python`, `Python 3`) collapse into a single canonical `Python` entry while preserving all variants in `original_names`.
+- **Job Requirements**:
+  - **Priority Precedence**: If any requirement variant is marked `must_have`, the deduplicated canonical skill is assigned `must_have`.
+  - **Experience Precedence**: Maximum required years of experience is preserved (`max(minimum_years)`).
+  - **Evidence Aggregation**: Distinct evidence phrases are concatenated with semicolons.
+
+### 5.5 Critical Guardrails (What Phase 5 Does NOT Do)
+- **Zero Hallucination for Unknown Skills**: Skills not in the registry are assigned `normalization_method="unknown"`, `category="other"` (or preserved hint category), and retain their clean original name. No LLM hallucination is permitted.
+- **Punctuation Sensitivity**: `C++` $\neq$ `C`, `C#` $\neq$ `C`, `.NET` $\neq$ `Node.js`, `Node.js` $\neq$ `Next.js`.
+- **False-Positive Filtering**: Generic resume/JD stopwords (`experience`, `work`, `team`, `cloud`, `data`, `model`, `code`) occurring in isolation are prevented from becoming technical skills.
+- **Strict Boundary**: Phase 5 performs **no candidate-job matching**, **no similarity calculations**, **no embeddings**, and **no scoring**.
+
+---
+
+## 6. Hybrid AI Engine Layers (Future Phases)
 
 The decision pipeline intentionally rejects purely black-box LLM screening or purely naive keyword matching. It employs a 4-layer architecture:
 

@@ -22,6 +22,7 @@ from backend.app.services.rule_extractor import (
     parse_education_blocks,
     parse_project_blocks,
 )
+from backend.app.services.skill_normalizer import normalize_candidate_skills
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +186,10 @@ def reconcile_candidate_profile(
         cleaned_skills.append(s)
 
     profile.skills = cleaned_skills
+
+    # 6. Skill normalization & deduplication (Phase 5)
+    profile.normalized_skills = normalize_candidate_skills(profile.skills)
+
     return profile
 
 
