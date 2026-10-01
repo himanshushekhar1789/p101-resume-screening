@@ -640,6 +640,7 @@ class CandidateJobMatchResponse(BaseModel):
     matches: List[SingleRequirementMatch] = []
     summary: MatchingSummary
     semantic_matches: Optional[List["SemanticMatchResult"]] = Field(default=None, description="Optional Phase 7 semantic matching results")
+    gaps: Optional["CandidateJobSkillGapResponse"] = Field(default=None, description="Optional Phase 9 skill-gap analysis report")
 
 
 class CandidateJobMatchWithScoreResponse(CandidateJobMatchResponse):
@@ -655,6 +656,7 @@ class MatchingAnalyzeRequest(BaseModel):
     job_id: Optional[str] = None
     include_semantic: Optional[bool] = Field(default=False, description="Whether to execute Phase 7 semantic matching alongside Phase 6")
     include_score: Optional[bool] = Field(default=False, description="Whether to compute Phase 8 hybrid candidate fit score")
+    include_skill_gaps: Optional[bool] = Field(default=False, description="Whether to compute Phase 9 skill-gap analysis report")
     scoring_weights: Optional["ScoringWeights"] = Field(default=None, description="Optional custom weights for Phase 8 scoring")
     llm_fit_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Optional explicit LLM fit score [0.0, 1.0]")
 
@@ -798,6 +800,91 @@ class ScoringAnalyzeRequest(BaseModel):
     include_semantic: Optional[bool] = Field(default=True, description="Whether to include Phase 7 semantic similarity in the score")
     weights: Optional[ScoringWeights] = Field(default=None, description="Optional custom scoring weights overriding defaults")
     llm_fit_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Optional explicit LLM-supported fit score [0.0, 1.0]")
+
+
+# ---------------------------------------------------------
+# Skill-Gap Analysis Schemas (Phase 9)
+# ---------------------------------------------------------
+class SkillGapStatus(str, Enum):
+    SATISFIED = "satisfied"
+    MISSING = "missing"
+    INSUFFICIENT = "insufficient"
+    NOT_EVALUABLE = "not_evaluable"
+
+
+class SkillGapItem(BaseModel):
+    """Detailed evaluation of an individual skill requirement gap."""
+    requirement_id: str = Field(..., description="Target requirement identifier (e.g. 'skill_Python')")
+    skill_name: str = Field(..., description="Target skill name as specified in the JD")
+    canonical_skill_name: Optional[str] = Field(default=None, description="Authoritative taxonomy canonical skill name")
+    category: Optional[str] = Field(default=None, description="Skill taxonomy category (e.g. 'programming_language', 'database')")
+    priority: RequirementPriority = Field(default="must_have", description="'must_have' or 'nice_to_have'")
+    status: SkillGapStatus = Field(..., description="'satisfied', 'missing', 'insufficient', or 'not_evaluable'")
+    required_value: Optional[str] = Field(default=None, description="Quantitative or qualitative required threshold (e.g. '3.0 years')")
+    candidate_value: Optional[str] = Field(default=None, description="Candidate's verified quantitative or qualitative value (e.g. '1.5 years')")
+    shortfall: Optional[str] = Field(default=None, description="Quantitative deficit when insufficient (e.g. '1.5 years')")
+    candidate_evidence: List[str] = Field(default_factory=list, description="Verifiable candidate profile quotes supporting this evaluation")
+    job_evidence: List[str] = Field(default_factory=list, description="Verbatim quote from job description")
+    explanation: str = Field(..., description="Transparent, deterministic explanation of the gap or satisfaction status")
+    deterministic_match_status: Optional[MatchStatus] = Field(default=None, description="Authoritative Phase 6 deterministic match status")
+    match_method: Optional[MatchMethod] = Field(default=None, description="Phase 6 match method")
+    semantic_similarity: Optional[float] = Field(default=None, description="Supporting Phase 7 semantic cosine similarity if available")
+    semantic_status: Optional[SemanticStatus] = Field(default=None, description="Supporting Phase 7 semantic status")
+    semantic_evidence: Optional[str] = Field(default=None, description="Best semantically related candidate evidence text")
+
+
+class ExperienceGapItem(BaseModel):
+    """Evaluation of a general career tenure requirement gap (kept strictly separate from skill gaps)."""
+    requirement_id: str = Field(..., description="Requirement identifier (e.g. 'exp_backend')")
+    requirement_text: str = Field(..., description="Full description of the experience requirement")
+    priority: RequirementPriority = Field(default="must_have", description="'must_have' or 'nice_to_have'")
+    status: SkillGapStatus = Field(..., description="'satisfied', 'missing', 'insufficient', or 'not_evaluable'")
+    required_years: Optional[float] = Field(default=None, description="Minimum required experience years")
+    candidate_years: Optional[float] = Field(default=None, description="Candidate verified non-overlapping experience years")
+    shortfall_years: Optional[float] = Field(default=None, description="Shortfall in years when insufficient")
+    candidate_evidence: List[str] = Field(default_factory=list, description="Candidate work experience citations")
+    job_evidence: List[str] = Field(default_factory=list, description="Verbatim experience requirement quote from JD")
+    explanation: str = Field(..., description="Explanation of experience verification and shortfall if any")
+
+
+class SkillGapSummary(BaseModel):
+    """Aggregate breakdown of skill gaps and experience gaps."""
+    total_skill_requirements: int = Field(default=0, description="Total technical and domain skill requirements evaluated")
+    satisfied_count: int = Field(default=0, description="Count of skills with adequate candidate evidence (satisfied)")
+    missing_count: int = Field(default=0, description="Count of required skills absent from candidate profile (missing)")
+    insufficient_count: int = Field(default=0, description="Count of skills where candidate falls short of quantitative tenure (insufficient)")
+    not_evaluable_count: int = Field(default=0, description="Count of skills that cannot be reliably assessed from available evidence")
+    must_have_gaps: int = Field(default=0, description="Number of mandatory (must_have) skills that are missing or insufficient (excluding not_evaluable)")
+    nice_to_have_gaps: int = Field(default=0, description="Number of preferred (nice_to_have) skills that are missing or insufficient (excluding not_evaluable)")
+    must_have_satisfied: int = Field(default=0, description="Number of mandatory skills satisfied")
+    nice_to_have_satisfied: int = Field(default=0, description="Number of preferred skills satisfied")
+    total_experience_requirements: int = Field(default=0, description="Total general career tenure requirements evaluated")
+    experience_gaps_count: int = Field(default=0, description="Number of general career experience requirements not satisfied")
+
+
+class CandidateJobSkillGapResponse(BaseModel):
+    """Top-level response for Phase 9 Skill-Gap Analysis & Evidence Grounding."""
+    candidate_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    job_id: Optional[str] = None
+    job_title: Optional[str] = None
+    skill_gaps: List[SkillGapItem] = Field(default_factory=list, description="Evaluations of individual structured skills")
+    experience_gaps: List[ExperienceGapItem] = Field(default_factory=list, description="Evaluations of general career tenure requirements")
+    summary: SkillGapSummary = Field(..., description="High-level counts and breakdown of gaps")
+    explanation: str = Field(default="", description="Grounded, audit-compliant overview of identified gaps")
+
+
+class SkillGapAnalyzeRequest(BaseModel):
+    """Request payload for POST /api/v1/gaps/analyze."""
+    candidate: CandidateProfile
+    job: JobProfile
+    candidate_id: Optional[str] = None
+    job_id: Optional[str] = None
+    include_semantic: Optional[bool] = Field(default=True, description="Whether to include Phase 7 semantic supporting evidence")
+
+
+CandidateJobMatchResponse.model_rebuild()
+
 
 
 

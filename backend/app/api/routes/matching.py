@@ -55,6 +55,16 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
             include_semantic=payload.include_semantic or False,
         )
 
+        if payload.include_skill_gaps:
+            from backend.app.services.skill_gap_analyzer import analyze_skill_gaps
+            gaps_res = analyze_skill_gaps(
+                candidate=payload.candidate,
+                job=payload.job,
+                match_response=result,
+                include_semantic=payload.include_semantic or False,
+            )
+            result.gaps = gaps_res
+
         if payload.include_score:
             from backend.app.services.scoring_engine import get_scoring_engine
             scoring_engine = get_scoring_engine()
@@ -70,6 +80,7 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
                 matches=result.matches,
                 summary=result.summary,
                 semantic_matches=result.semantic_matches,
+                gaps=result.gaps,
                 score=score_res,
             )
 
@@ -134,6 +145,7 @@ async def match_from_files_endpoint(
     job_file: UploadFile = File(..., description="Job description (PDF or DOCX)"),
     include_semantic: bool = False,
     include_score: bool = False,
+    include_skill_gaps: bool = False,
 ):
     """
     Convenience endpoint accepting uploaded documents for both resume and JD,
@@ -164,6 +176,16 @@ async def match_from_files_endpoint(
             include_semantic=include_semantic,
         )
 
+        if include_skill_gaps:
+            from backend.app.services.skill_gap_analyzer import analyze_skill_gaps
+            gaps_res = analyze_skill_gaps(
+                candidate=candidate_profile,
+                job=job_profile,
+                match_response=match_result,
+                include_semantic=include_semantic,
+            )
+            match_result.gaps = gaps_res
+
         if include_score:
             from backend.app.services.scoring_engine import get_scoring_engine
             scoring_engine = get_scoring_engine()
@@ -175,6 +197,7 @@ async def match_from_files_endpoint(
                 matches=match_result.matches,
                 summary=match_result.summary,
                 semantic_matches=match_result.semantic_matches,
+                gaps=match_result.gaps,
                 score=score_res,
             )
 

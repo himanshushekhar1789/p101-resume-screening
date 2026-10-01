@@ -360,3 +360,39 @@ To verify that scoring is truly configurable rather than static:
 * **Config B (Rule-Heavy)**: $w_{\text{rule}}=0.60, w_{\text{semantic}}=0.20, w_{\text{exp}}=0.20 \implies \text{Fit Score} = 0.9000$.
 * **Result**: Score adjusts dynamically and predictably ($\Delta = +0.20$), confirming active weight compliance.
 
+---
+
+## 11. Phase 9: Skill-Gap Analysis & Evidence Grounding Evaluation
+
+### 11.1 Evaluation Methodology & Rigor
+Phase 9 evaluates candidate deficiencies with strict evidence grounding and objective decision-support boundaries:
+- **Four-Category Skill Classification**: Every skill is classified deterministically as `satisfied`, `missing`, `insufficient`, or `not_evaluable`.
+- **Deterministic-First Authority (Rule 6)**: Phase 6 deterministic `unmatched` cannot be upgraded by semantic similarity. Semantic embeddings provide contextual explanation only.
+- **Career Tenure Separation**: General experience requirements are analyzed strictly in `experience_gaps` and never converted into technical skills.
+- **Deduplication Integrity**: Aliases and duplicates are merged under canonical names with `must_have` priority precedence and maximum tenure retention.
+- **Summary Arithmetic Invariants**: `total_skill_requirements = satisfied + missing + insufficient + not_evaluable`. `must_have_gaps = missing(must_have) + insufficient(must_have)` (strictly excluding `not_evaluable`).
+- **Prohibition Verification**: Zero rankings, zero shortlists/top-N cuts, zero automated hiring/rejection decisions, zero recommendations/courses.
+
+### 11.2 Phase 9 Test Matrix (`backend/tests/test_skill_gap_analyzer.py`)
+
+The test suite validates Phase 9 across 15 dedicated scenarios:
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_perfect_skill_match` | Full Match | Candidate has Python (4 yrs) & Docker (3 yrs) for 3 yr requirements | All skills `satisfied`, `shortfall = None`, `must_have_gaps = 0` |
+| `test_missing_must_have_skill` | Critical Gap | Candidate lacks required PostgreSQL skill | Status `missing`, `must_have_gaps = 1`, clear explanation and empty candidate evidence |
+| `test_missing_nice_to_have_skill` | Non-Critical Gap | Candidate lacks optional Redis skill | Status `missing`, `priority = nice_to_have`, `must_have_gaps = 0`, `nice_to_have_gaps = 1` |
+| `test_insufficient_skill_specific_experience` | Duration Shortfall | Candidate has 1 yr Docker vs 3 yrs required | Status `insufficient`, `required_value = "3.0 years"`, `candidate_value = "1.0 years"`, `shortfall = "2.0 years"`, `must_have_gaps = 1` |
+| `test_not_evaluable_skill` | Ambiguous Tenure | Candidate lists AWS in skills list but with 0 dated role tenure | Status `not_evaluable`, `not_evaluable_count = 1`, `must_have_gaps = 0` (excluded per Section 11) |
+| `test_semantic_similarity_cannot_override_deterministic_missing` | Rule 6 Enforcement | Job requires PostgreSQL, candidate has MySQL with high cosine similarity (0.68) | Deterministic outcome is authoritative: status is `missing`, semantic match cited purely as supporting context in explanation |
+| `test_general_experience_remains_separate` | Separation of Concerns | Job requires "5+ years backend software engineering" | Evaluated in `experience_gaps` (status `satisfied`), NOT converted into a skill gap |
+| `test_evidence_preservation` | Evidence Grounding | Evaluates satisfied and insufficient skills | Verifies job evidence and candidate dated role evidence are explicitly retained |
+| `test_duplicate_normalized_skills` | Deduplication | JD lists "JS" (must_have, 3 yrs) and "JavaScript" (nice_to_have, 1 yr) | Merged under canonical "JavaScript", retains `must_have` priority and 3.0 yrs tenure, single gap item |
+| `test_skill_gap_summary_counts_and_rules` | Summary Arithmetic | Mixed profile: 1 satisfied, 1 missing must-have, 1 missing nice-to-have, 1 insufficient, 1 not_evaluable | Total=5, satisfied=1, missing=2, insufficient=1, not_evaluable=1, must_have_gaps=2, nice_to_have_gaps=1 |
+| `test_no_ranking_or_hiring_decisions_in_gap_response` | Scope Boundaries | Response payload inspected for forbidden keywords | Zero occurrences of `rank`, `shortlist`, `hire`, `reject`, `recommendation`, `course` |
+| `test_api_gaps_analyze_endpoint` | REST API | `POST /api/v1/gaps/analyze` with structured profile payload | HTTP 200 with complete `CandidateJobSkillGapResponse` |
+| `test_api_gaps_from_files_endpoint` | End-to-End File API | `POST /api/v1/gaps/from-files` with uploaded PDF/DOCX files | HTTP 200 with extracted profiles and grounded skill gaps |
+| `test_matching_analyze_with_include_skill_gaps` | Unified Matching API | `POST /api/v1/matching/analyze` with `include_skill_gaps=True` | HTTP 200 with populated `gaps` field in `CandidateJobMatchResponse` |
+| `test_matching_from_files_with_include_skill_gaps` | Unified File API | `POST /api/v1/matching/from-files` with `include_skill_gaps=True` | HTTP 200 with populated `gaps` field from uploaded documents |
+
+

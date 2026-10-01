@@ -301,7 +301,9 @@ Evaluates a candidate against a job description's structured requirements determ
 {
   "candidate": { ... },     // CandidateProfile or candidate dict
   "job": { ... },           // JobProfile or job dict
-  "include_semantic": false // Optional: set true to evaluate semantic embeddings (Phase 7)
+  "include_semantic": false, // Optional: set true to evaluate semantic embeddings (Phase 7)
+  "include_score": false,    // Optional: set true to evaluate hybrid fit score (Phase 8)
+  "include_skill_gaps": false // Optional: set true to evaluate evidence-grounded skill gaps (Phase 9)
 }
 ```
 Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
@@ -365,19 +367,22 @@ Alternatively, raw texts can be supplied in `candidate_text` and `job_text`.
     "nice_to_have_not_evaluable": 0,
     "all_must_haves_satisfied": true
   },
-  "semantic_matches": [ ... ] // Populated when include_semantic=true
+  "semantic_matches": [ ... ], // Populated when include_semantic=true
+  "score": { ... },            // Populated when include_score=true
+  "gaps": { ... }              // Populated when include_skill_gaps=true
 }
 ```
 
 ### `POST /matching/from-files`
-Executes end-to-end matching directly from uploaded resume and JD documents (`.pdf`, `.docx`), with optional semantic embedding and hybrid scoring evaluation.
+Executes end-to-end matching directly from uploaded resume and JD documents (`.pdf`, `.docx`), with optional semantic embedding, hybrid scoring evaluation, and skill-gap analysis.
 
 - **Request**: Multipart Form Data:
   - `resume_file`: UploadFile (PDF or DOCX)
   - `job_file`: UploadFile (PDF or DOCX)
   - `include_semantic`: Query Parameter (bool, default `false`)
   - `include_score`: Query Parameter (bool, default `false`)
-- **Response (200 OK)**: `CandidateJobMatchResponse` (or `CandidateJobMatchWithScoreResponse` if `include_score=true`).
+  - `include_skill_gaps`: Query Parameter (bool, default `false`)
+- **Response (200 OK)**: `CandidateJobMatchResponse` (optionally populating `score` and/or `gaps`).
 
 ### `POST /matching/semantic` (Phase 7)
 Evaluates candidate background against job requirements using dense vector embeddings (`all-MiniLM-L6-v2`) and cosine similarity.
@@ -504,7 +509,138 @@ Computes an explainable, multi-layer hybrid candidate-fit score combining determ
 
 ---
 
-## 9. Future Phases: Screening & Rankings
+## 9. Skill-Gap Analysis & Evidence Grounding (Phase 9)
+
+Phase 9 exposes dedicated endpoints and parameters to analyze candidate skill and experience gaps grounded in verifiable profile and job evidence.
+
+### `POST /gaps/analyze`
+Analyzes canonical skill gaps and experience requirements directly from structured `CandidateProfile` and `JobProfile` objects.
+
+- **Request Body (JSON)**:
+```json
+{
+  "candidate": { ... },     // CandidateProfile
+  "job": { ... },           // JobProfile
+  "candidate_id": "cand_101",
+  "job_id": "job_202"
+}
+```
+
+- **Response (200 OK)**: `CandidateJobSkillGapResponse`
+```json
+{
+  "candidate_id": "cand_101",
+  "candidate_name": "Jane Doe",
+  "job_id": "job_202",
+  "job_title": "Senior Backend Engineer",
+  "skill_gaps": [
+    {
+      "canonical_name": "Python",
+      "priority": "must_have",
+      "status": "satisfied",
+      "required_value": "3.0 years",
+      "candidate_value": "4.0 years",
+      "shortfall": null,
+      "candidate_evidence": [
+        "Candidate possesses canonical skill Python (category: programming_language, verified duration: 4.0 yrs)",
+        "Senior Backend Engineer at TechCorp (2020-01 - 2024-01)"
+      ],
+      "job_evidence": [
+        "Python (priority: must_have, min_years: 3.0)"
+      ],
+      "explanation": "Candidate satisfies required skill Python with verified duration of 4.0 years (exceeds required 3.0 years).",
+      "deterministic_match_status": "matched",
+      "match_method": "experience_verified",
+      "semantic_similarity": 0.95,
+      "semantic_status": "high",
+      "semantic_evidence": "Candidate skill 'Python' directly aligns with required skill 'Python' (cosine similarity: 0.95)."
+    },
+    {
+      "canonical_name": "Docker",
+      "priority": "must_have",
+      "status": "insufficient",
+      "required_value": "3.0 years",
+      "candidate_value": "1.0 years",
+      "shortfall": "2.0 years",
+      "candidate_evidence": [
+        "Candidate possesses canonical skill Docker (category: devops, verified duration: 1.0 yrs)",
+        "Backend Developer at StartupX (2023-01 - 2024-01)"
+      ],
+      "job_evidence": [
+        "Docker (priority: must_have, min_years: 3.0)"
+      ],
+      "explanation": "Candidate demonstrates required skill Docker but verified duration of 1.0 years falls short of required 3.0 years by 2.0 years.",
+      "deterministic_match_status": "partial",
+      "match_method": "experience_insufficient",
+      "semantic_similarity": 0.92,
+      "semantic_status": "high",
+      "semantic_evidence": "Candidate skill 'Docker' aligns with required skill 'Docker' (cosine similarity: 0.92)."
+    },
+    {
+      "canonical_name": "PostgreSQL",
+      "priority": "must_have",
+      "status": "missing",
+      "required_value": null,
+      "candidate_value": null,
+      "shortfall": null,
+      "candidate_evidence": [],
+      "job_evidence": [
+        "PostgreSQL (priority: must_have)"
+      ],
+      "explanation": "Candidate profile contains no verifiable evidence for required skill PostgreSQL. Supporting semantic evidence: Conceptually related candidate evidence 'MySQL (database)' (cosine similarity: 0.68) was detected, but cannot substitute for required skill.",
+      "deterministic_match_status": "unmatched",
+      "match_method": "unmatched",
+      "semantic_similarity": 0.68,
+      "semantic_status": "medium",
+      "semantic_evidence": "Conceptually related candidate evidence 'MySQL (database)' was detected with moderate semantic similarity (0.68), but does not satisfy requirement."
+    }
+  ],
+  "experience_gaps": [
+    {
+      "requirement_text": "Minimum 5 years of software engineering experience",
+      "priority": "must_have",
+      "status": "satisfied",
+      "required_years": 5.0,
+      "candidate_years": 6.0,
+      "shortfall_years": 0.0,
+      "candidate_evidence": [
+        "Demonstrated 6.0 years of non-overlapping career experience across 2 dated positions.",
+        "Senior Backend Engineer at TechCorp (2020-01 - 2024-01)",
+        "Backend Developer at StartupX (2018-01 - 2020-01)"
+      ],
+      "job_evidence": [
+        "Minimum 5 years of software engineering experience"
+      ],
+      "explanation": "Candidate satisfies experience requirement: 6.0 years verified (exceeds required 5.0 years)."
+    }
+  ],
+  "summary": {
+    "total_skill_requirements": 3,
+    "satisfied_count": 1,
+    "missing_count": 1,
+    "insufficient_count": 1,
+    "not_evaluable_count": 0,
+    "must_have_gaps": 2,
+    "nice_to_have_gaps": 0,
+    "must_have_satisfied": 1,
+    "nice_to_have_satisfied": 0,
+    "total_experience_requirements": 1,
+    "experience_gaps_count": 0
+  }
+}
+```
+
+### `POST /gaps/from-files`
+Executes end-to-end document parsing, profile extraction, normalization, deterministic matching, semantic matching, and skill-gap analysis directly from uploaded PDF/DOCX files.
+
+- **Request**: Multipart Form Data:
+  - `resume_file`: UploadFile (PDF or DOCX)
+  - `job_file`: UploadFile (PDF or DOCX)
+- **Response (200 OK)**: `CandidateJobSkillGapResponse`
+
+---
+
+## 10. Future Phases: Screening & Rankings
 
 ### `POST /jobs/{id}/screen`
 Execute the multi-layer hybrid screening pipeline over all uploaded resumes for a job posting.
@@ -517,3 +653,4 @@ Retrieve a candidate's complete profile, evidence citations, skill gaps, and per
 
 ### `GET /jobs/{id}/export`
 Export screening results as a CSV file with complete scores and breakdown.
+

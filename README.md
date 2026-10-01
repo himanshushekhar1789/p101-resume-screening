@@ -566,7 +566,56 @@ curl -X POST "http://127.0.0.1:8000/api/v1/matching/from-files?include_semantic=
 
 ---
 
-## 10. Project Directory Structure
+## 10. Skill-Gap Analysis & Evidence Grounding (Phase 9)
+
+Phase 9 introduces an evidence-grounded skill-gap analysis engine that identifies candidate deficiencies against job requirements while upholding strict objectivity and verification standards:
+
+- **Four Discrete Skill Gap Statuses**:
+  1. `satisfied`: Candidate satisfies the skill with verified duration meeting or exceeding requirements.
+  2. `missing`: Candidate profile contains no matching skill evidence whatsoever.
+  3. `insufficient`: Candidate demonstrates the skill, but verified duration falls short of required tenure.
+  4. `not_evaluable`: Skill mentioned or demonstrated, but tenure cannot be verified from dated work history.
+- **Deterministic-First Authority (Rule 6)**: Phase 6 deterministic matching is authoritative. Semantic similarity **cannot** override a deterministic `unmatched` status to `satisfied` or `partial`. Instead, semantic similarity is cited purely as supporting context in the explanation.
+- **Quantitative Shortfall Calculation**: For `insufficient` skills: $\text{shortfall} = \max(0.0, \text{required\_years} - \text{candidate\_years})$.
+- **Career Tenure Separation**: General experience requirements are analyzed strictly in `experience_gaps` and never converted into technical skill gaps.
+- **Canonical Skill Deduplication**: Groups alias requirements (e.g. `JS` and `JavaScript`) under canonical taxonomy names, preserving `must_have` priority precedence and maximum tenure requirements.
+- **Strict Decision-Support Guardrails**: Zero candidate ranking, zero shortlists, zero hiring/rejection decisions, zero courses/learning recommendations.
+
+### Skill-Gap API Examples
+
+#### 1. Analyze Gaps from Profiles (`POST /api/v1/gaps/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/gaps/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... }
+     }'
+```
+
+#### 2. Analyze Gaps from Uploaded Files (`POST /api/v1/gaps/from-files`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/gaps/from-files" \
+     -F "resume_file=@data/sample/resumes/synthetic_software_engineer.pdf" \
+     -F "jd_file=@data/sample/job_descriptions/backend_developer_jd.pdf"
+```
+
+#### 3. Unified Matching with Score and Gaps (`POST /api/v1/matching/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... },
+       "include_semantic": true,
+       "include_score": true,
+       "include_skill_gaps": true
+     }'
+```
+
+---
+
+## 11. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -598,7 +647,8 @@ p101-resume-screening/
 │   │   │       ├── jobs.py            # Job Description analysis endpoints (/analyze, /upload)
 │   │   │       ├── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
 │   │   │       ├── matching.py        # Matching endpoints (/analyze, /from-files, /semantic)
-│   │   │       └── scoring.py         # Hybrid fit scoring endpoint (/analyze)
+│   │   │       ├── scoring.py         # Hybrid fit scoring endpoint (/analyze)
+│   │   │       └── gaps.py            # Skill gap analysis endpoints (/analyze, /from-files)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -626,6 +676,7 @@ p101-resume-screening/
 │   │       ├── embedding_service.py   # Dense vector embeddings and in-memory cache
 │   │       ├── semantic_matcher.py    # Semantic matching and false-positive protection matrix
 │   │       ├── scoring_engine.py      # Multi-layer hybrid fusion scoring engine
+│   │       ├── skill_gap_analyzer.py  # Evidence-grounded skill gap analyzer
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -643,7 +694,8 @@ p101-resume-screening/
 │       ├── test_skill_normalizer.py   # Skill normalization and taxonomy tests
 │       ├── test_matching_engine.py    # Deterministic matching and API tests
 │       ├── test_semantic_matching.py  # Embedding, threshold, caching, and semantic match tests
-│       └── test_scoring_engine.py     # Hybrid fusion scoring, priority, capping & API tests
+│       ├── test_scoring_engine.py     # Hybrid fusion scoring, priority, capping & API tests
+│       └── test_skill_gap_analyzer.py # Evidence-grounded skill gap analysis & API tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -655,7 +707,7 @@ p101-resume-screening/
 
 ---
 
-## 11. Getting Started
+## 12. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -722,7 +774,7 @@ pytest backend/tests/ -v
 
 ---
 
-## 12. Development Roadmap & Incremental Phases
+## 13. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
@@ -732,9 +784,10 @@ pytest backend/tests/ -v
 - [x] **Phase 6: Candidate ↔ Job Requirement Matching Engine**
 - [x] **Phase 7: Embedding-Based Semantic Matching**
 - [x] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
-- [ ] **Phase 9: Skill-Gap Analysis & Evidence Grounding**
+- [x] **Phase 9: Skill-Gap Analysis & Evidence Grounding**
 - [ ] **Phase 10: LLM Explanations & Personalized Recommendations**
 - [ ] **Phase 11: Frontend Web Dashboard**
 - [ ] **Phase 12: End-to-End System Integration**
 - [ ] **Phase 13: Synthetic Evaluation & Benchmark Testing**
 - [ ] **Phase 14: Documentation & Docker Deployment**
+

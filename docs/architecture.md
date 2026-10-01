@@ -564,3 +564,79 @@ Core entities:
 ## 10. Privacy & Masked Mode
 - Recruiter can toggle `masked_mode`.
 - When enabled, names, gender indicators, photographs, institutions, and contact details are redacted before scoring to mitigate cognitive bias.
+
+---
+
+## 11. Phase 9: Skill-Gap Analysis & Evidence Grounding
+
+Phase 9 implements an evidence-grounded skill-gap analysis service that answers: *"Which job skills are not adequately demonstrated by this candidate, and what evidence supports that conclusion?"*
+
+```text
+Candidate Profile                  Job Profile
+       │                                │
+       ▼                                ▼
+Phase 5 Skill Normalization      Phase 5 Skill Normalization
+       │                                │
+       ├────────────────────────────────┤
+       │                                │
+       ▼                                ▼
+Phase 6 Deterministic Match      Phase 7 Semantic Match
+       │                                │
+       └────────────────┬───────────────┘
+                        │
+                        ▼
+       Phase 9: SKILL-GAP ANALYZER
+                        │
+        ┌───────────────┴───────────────┐
+        ▼                               ▼
+Canonical Skill Gaps           Experience Gaps
+(Evidence-Grounded)            (Career Tenure)
+        │                               │
+        └───────────────┬───────────────┘
+                        ▼
+             Skill Gap Summary
+         (Auditable Counts & Breakdown)
+```
+
+### 11.1 Discrete Skill Gap Statuses
+Every job skill requirement is classified into exactly one of four discrete statuses:
+1. `satisfied`: Candidate demonstrates verifiable exact, alias, or version-compatible match satisfying all criteria (including any skill-specific tenure).
+2. `missing`: Candidate profile contains no matching skill evidence whatsoever.
+3. `insufficient`: Candidate demonstrates the skill, but verifiable duration falls short of the required tenure (e.g. 1.0 year demonstrated vs 3.0 years required).
+4. `not_evaluable`: Candidate mentions or demonstrates the skill, but tenure cannot be verified from dated work history, or evidence is ambiguous.
+
+### 11.2 Deterministic-First Authority (Rule 6)
+- **Authoritative Deterministic Ground Truth**: Phase 6 deterministic matching outcomes are strictly authoritative.
+- **No Semantic Override**: A deterministic `unmatched` status can **never** be upgraded to `satisfied` or `partial` by semantic similarity, regardless of how high the cosine similarity is. For example, if a job requires `PostgreSQL` and the candidate only has `MySQL`, the deterministic match is `unmatched`, and Phase 9 classifies the requirement strictly as `missing`.
+- **Supporting Semantic Evidence**: High semantic similarity is recorded purely as diagnostic/contextual information within `semantic_evidence` and `explanation` (e.g., *"Supporting semantic evidence: Conceptually related candidate evidence 'MySQL (database)' (cosine similarity: 0.68) was detected, but cannot substitute for required skill."*), enabling recruiters to understand candidate adjacency without compromising skill rigor.
+
+### 11.3 Quantitative Shortfall Calculation
+For `insufficient` skills with tenure deficits:
+$$\text{shortfall} = \max(0.0, \text{required\_years} - \text{candidate\_years})$$
+- Calculated using verifiable non-overlapping calendar intervals from dated work experiences.
+- Formatted with explicit units (e.g. `required_value: "3.0 years"`, `candidate_value: "1.0 years"`, `shortfall: "2.0 years"`).
+
+### 11.4 Career Experience vs Skill Separation
+General career tenure requirements (e.g., "5+ years of software engineering experience", "3+ years of backend development") are evaluated strictly in `experience_gaps` as `ExperienceGapItem` records. They are **never** converted into artificial technical skill requirements like "backend", preserving a clean separation of concerns.
+
+### 11.5 Canonical Grouping and Alias Deduplication
+When a job description mentions the same underlying canonical skill under multiple aliases (e.g., "JS" in the overview and "JavaScript" in requirements):
+- The analyzer groups them under the canonical taxonomy name (`JavaScript`).
+- Resolves conflicts using `must_have` priority precedence (`must_have` overrides `nice_to_have`).
+- Retains the maximum required experience duration.
+- Consolidates candidate and job evidence citations into a single, cohesive `SkillGapItem`.
+
+### 11.6 Summary Arithmetic & Integrity Invariants
+The `SkillGapSummary` provides exact, auditable accounting:
+$$\text{total\_skill\_requirements} = \text{satisfied\_count} + \text{missing\_count} + \text{insufficient\_count} + \text{not\_evaluable\_count}$$
+$$\text{must\_have\_gaps} = \text{missing}(\text{must\_have}) + \text{insufficient}(\text{must\_have})$$
+- Per Section 11 requirements, `not_evaluable` indicates incomplete/unverified information and is **never** counted as a confirmed gap in `must_have_gaps`.
+- `must_have_satisfied` counts verified `must_have` skills with status `satisfied`.
+
+### 11.7 Strict Decision-Support Guardrails
+Phase 9 operates strictly as an objective, evidence-grounded decision-support system:
+- **Zero Candidate Rankings**: No `rank`, `rank_order`, or sorting across candidates.
+- **Zero Shortlists or Top-N Cuts**: No automated selection, filtering, or tiering.
+- **Zero Automated Hiring Decisions**: No `hire`, `reject`, `pass`, or `fail` classifications.
+- **Zero Learning Recommendations**: No courses, training roadmaps, or interview questions (reserved for future phases).
+
