@@ -640,3 +640,67 @@ Phase 9 operates strictly as an objective, evidence-grounded decision-support sy
 - **Zero Automated Hiring Decisions**: No `hire`, `reject`, `pass`, or `fail` classifications.
 - **Zero Learning Recommendations**: No courses, training roadmaps, or interview questions (reserved for future phases).
 
+---
+
+## 12. Phase 10: LLM Explanations & Personalized Recommendations
+
+Phase 10 introduces an **evidence-grounded explanation and personalized recommendation layer**.
+
+```text
+Phase 6 Deterministic Matching
+             │
+Phase 7 Semantic Evidence
+             │
+Phase 8 Hybrid Score
+             │
+Phase 9 Skill Gaps
+             │
+             ▼
+      Phase 10 LLM Layer
+             │
+       ┌─────┴─────┐
+       ▼           ▼
+  Explanation   Recommendations
+```
+
+### 12.1 Critical Separation Principle
+The LLM is strictly an **explanation and recommendation layer**:
+- It is **NOT** an authority over:
+  - deterministic matching
+  - semantic matching
+  - experience calculations
+  - hybrid scoring
+  - skill-gap classification
+  - requirement priority
+  - candidate ranking
+  - hiring decisions
+- The LLM **never** modifies or recalculates underlying structured facts or numerical scores.
+- It consumes structured evidence previously computed by Phases 6–9 and translates them into transparent narrative explanations and targeted recommendations.
+
+### 12.2 Mandatory Grounding & Anti-Hallucination Safeguards
+1. **Rule 1 — No Fabricated Evidence**: The LLM cannot claim a skill or credential exists unless present in structured candidate evidence.
+2. **Rule 2 — No Fabricated Experience**: Do not invent years, employers, projects, degrees, or certifications.
+3. **Rule 3 — No Score Manipulation**: Numerical fit scores ($S_{\text{rule}}$, $S_{\text{semantic}}$, $S_{\text{experience}}$, $S_{\text{fit}}$) are preserved verbatim.
+4. **Rule 4 — No Requirement Manipulation**: Requirements cannot be reinterpreted to alter candidate suitability.
+5. **Rule 5 — Explicit Uncertainty**: Unverified evidence is explicitly labeled as not evaluable rather than guessed.
+6. **Rule 6 — Semantic Invariance**: Conceptually related skills (e.g. MySQL for PostgreSQL) are explained as supporting context only; deterministic missing status is strictly maintained.
+
+### 12.3 Personalized Recommendation Logic
+Recommendations are generated **only** from actual Phase 9 gaps (status `missing`, `insufficient`, or `not_evaluable`):
+- Each recommendation links directly to its source gap (`skill`, `gap_status`, `priority`).
+- Explains the root cause (`reason`).
+- Suggests concrete, actionable learning or project workflows (`recommendation`).
+- Specifies verifiable artifacts (`evidence_to_build`, e.g. GitHub repositories, deployment manifests, benchmark logs).
+- Technologies not identified as gaps in Phase 9 are never introduced.
+
+### 12.4 LLM Explanation vs. Numerical LLM Fit Scoring
+Phase 10 strictly separates LLM explanation from the Phase 8 `llm_fit` numerical score component:
+- Generating an explanation does **not** fabricate an `llm_fit` score.
+- If `llm_fit` was unavailable in Phase 8 (`score = None`), it remains unavailable and its weight stays renormalized.
+- Explanation is a qualitative narrative audit trail; scoring is a quantitative evaluation.
+
+### 12.5 Failure Handling & Offline Execution
+- The screening pipeline degrades gracefully if the LLM provider is unavailable: Phases 1–9 execute deterministically without dependency on LLM connectivity.
+- Offline and CI/CD testing utilize `MockLLMClient`, providing 100% deterministic, reproducible explanations without requiring external API keys.
+
+

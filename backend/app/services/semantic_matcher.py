@@ -228,17 +228,30 @@ def extract_job_requirement_semantic_items(job: JobProfile) -> List[RequirementS
 
     # 3. Education Requirements
     for edu_req in job.education_requirements:
-        fields_str = ", ".join(edu_req.fields_of_study) if edu_req.fields_of_study else "Computer Science"
-        evidence_str = edu_req.evidence or f"{edu_req.degree_level} in {fields_str}"
+        degree_name = getattr(edu_req, "degree", None) or getattr(edu_req, "degree_level", None) or "Degree"
+        field_val = getattr(edu_req, "field", None)
+        if field_val:
+            fields_str = field_val
+        elif getattr(edu_req, "fields_of_study", None):
+            fields_str = ", ".join(edu_req.fields_of_study)
+        else:
+            fields_str = "Computer Science"
+
+        is_req = getattr(edu_req, "is_required", None)
+        if is_req is None:
+            is_req = (edu_req.priority == "must_have")
+
+        evidence_str = edu_req.evidence or f"{degree_name} in {fields_str}"
         req_text = (
-            f"Education requirement: {edu_req.degree_level} in {fields_str} | "
-            f"Required: {edu_req.is_required} | "
+            f"Education requirement: {degree_name} in {fields_str} | "
+            f"Required: {is_req} | "
             f"Evidence: {evidence_str}"
         )
+
         items.append(
             RequirementSemanticItem(
-                requirement_id=f"edu_{edu_req.degree_level}",
-                name=f"{edu_req.degree_level} in {fields_str}",
+                requirement_id=f"edu_{degree_name}",
+                name=f"{degree_name} in {fields_str}",
                 category="education",
                 priority=edu_req.priority,
                 minimum_years=None,
@@ -246,6 +259,7 @@ def extract_job_requirement_semantic_items(job: JobProfile) -> List[RequirementS
                 full_text=req_text,
             )
         )
+
 
     # 4. Certifications
     for cert in job.certification_requirements:

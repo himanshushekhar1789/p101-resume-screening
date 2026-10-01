@@ -395,4 +395,41 @@ The test suite validates Phase 9 across 15 dedicated scenarios:
 | `test_matching_analyze_with_include_skill_gaps` | Unified Matching API | `POST /api/v1/matching/analyze` with `include_skill_gaps=True` | HTTP 200 with populated `gaps` field in `CandidateJobMatchResponse` |
 | `test_matching_from_files_with_include_skill_gaps` | Unified File API | `POST /api/v1/matching/from-files` with `include_skill_gaps=True` | HTTP 200 with populated `gaps` field from uploaded documents |
 
+---
+
+## 12. Phase 10: LLM Explanations & Personalized Recommendations Evaluation
+
+### 12.1 Evaluation Methodology & Rigor
+Phase 10 evaluates narrative explanation transparency and recommendation precision against strict grounding rules:
+- **Strict Evidence Grounding**: The LLM explains previously computed facts from Phases 6–9 without inventing or extrapolating skills, employers, or credentials.
+- **Deterministic-First Authority**: Conceptually related skills (MySQL vs PostgreSQL) are cited as supporting context only; missing status is never overridden.
+- **Quantitative Shortfall Preservation**: Insufficient skill tenure preserves exact deficits (e.g. 1.0 vs 3.0 years) without inflating candidate experience.
+- **Recommendations Strictly Grounded in Gaps**: Actionable recommendations and verifiable artifacts are generated ONLY for skills with status `missing`, `insufficient`, or `not_evaluable`.
+- **Numerical Score Preservation**: Hybrid fit scores ($S_{\text{rule}}$, $S_{\text{semantic}}$, $S_{\text{experience}}$, $S_{\text{fit}}$) are interpreted objectively without numerical alteration.
+- **Strict Prohibition Enforcement**: Zero candidate rankings, zero shortlists/top-N cuts, zero automated hiring/rejection decisions.
+- **Controlled Error Handling**: Malformed or non-JSON responses are rejected via `LLMValidationError` and HTTP 422.
+
+### 12.2 Phase 10 Test Matrix (`backend/tests/test_llm_explanation.py`)
+
+The test suite validates Phase 10 across 15 dedicated scenarios:
+
+| Test Case | Scope | Scenario | Expected Outcome |
+|---|---|---|---|
+| `test_fully_satisfied_candidate` | Full Match | Candidate satisfies all requirements | Strengths acknowledge verified skills; zero gaps and zero recommendations |
+| `test_missing_skill` | Critical Gap | Candidate lacks PostgreSQL | PostgreSQL cited in `key_gaps`, status `missing`, recommendation generated |
+| `test_insufficient_skill` | Duration Shortfall | Candidate has 1 yr Docker vs 3 yrs required | Quantitative shortfall (2.0 yrs) preserved; status `insufficient` |
+| `test_not_evaluable_skill` | Ambiguous Tenure | AWS listed without dated employment history | Status `not_evaluable`; explicit uncertainty and unverified tenure cited |
+| `test_semantic_evidence_cannot_override_deterministic_status` | Rule 6 Enforcement | PostgreSQL required; candidate has MySQL | PostgreSQL remains `missing`; semantic evidence cited as supporting context only |
+| `test_no_hallucinated_evidence` | Anti-Hallucination | Candidate with no AWS/Kubernetes | Output contains zero claims of AWS/Kubernetes competency |
+| `test_score_preservation` | Numerical Integrity | Candidate score 0.72 with rule/semantic/experience breakdown | Scores explained without modification; numerical values preserved verbatim |
+| `test_recommendations_only_from_gaps` | Recommendation Grounding | Only gap is Kubernetes | Recommendation targets Kubernetes only; no unrelated technologies recommended |
+| `test_no_hiring_decision` | Scope Boundaries | Response payload inspected for decision keywords | Zero occurrences of `hire`, `reject`, `recommend_hire`, `rank`, or `shortlist` |
+| `test_invalid_llm_response` | Schema Validation | Mock provider returns malformed non-JSON | Raises `LLMValidationError`; rejects malformed output cleanly |
+| `test_mock_provider_deterministic_offline` | Determinism | Mock client invoked across repeated executions | 100% deterministic, bitwise reproducible outputs without network calls |
+| `test_api_explanations_analyze_endpoint` | REST API | `POST /api/v1/explanations/analyze` with structured profile payload | HTTP 200 with complete, validated `LLMExplanationResponse` |
+| `test_integrated_endpoint_include_explanation_true` | Unified Matching API | `POST /api/v1/matching/analyze` with `include_explanation=True` | HTTP 200 with populated `.explanation` alongside `.score` and `.gaps` |
+| `test_integrated_endpoint_backward_compatibility` | Backward Compatibility | `POST /api/v1/matching/analyze` with `include_explanation=False` | HTTP 200 with `.explanation is None` |
+| `test_file_based_explanation_endpoint` | End-to-End File API | `POST /api/v1/explanations/from-files` with uploaded PDF/DOCX files | HTTP 200 with extracted profiles, matching, gaps, and grounded explanation |
+
+
 

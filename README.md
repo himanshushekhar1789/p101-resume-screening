@@ -600,7 +600,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/gaps/from-files" \
      -F "jd_file=@data/sample/job_descriptions/backend_developer_jd.pdf"
 ```
 
-#### 3. Unified Matching with Score and Gaps (`POST /api/v1/matching/analyze`)
+##### 3. Unified Matching with Score and Gaps (`POST /api/v1/matching/analyze`)
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
      -H "Content-Type: application/json" \
@@ -609,13 +609,46 @@ curl -X POST "http://127.0.0.1:8000/api/v1/matching/analyze" \
        "job": { ... },
        "include_semantic": true,
        "include_score": true,
-       "include_skill_gaps": true
+       "include_skill_gaps": true,
+       "include_explanation": true
      }'
 ```
 
 ---
 
-## 11. Project Directory Structure
+## 11. LLM Explanations & Personalized Recommendations (Phase 10)
+
+Phase 10 provides an evidence-grounded explanation and personalized recommendation layer that translates structured evaluation metrics into human-readable narrative audits:
+
+- **Critical Boundary Principle**: The LLM is an explanation and recommendation layer only. It is **NOT** an authority over deterministic matching, semantic matching, scoring, or gap determination, and never alters underlying facts or numerical scores.
+- **Mandatory Evidence Grounding**: Explanations cite only verified resume and JD evidence; zero fabricated experience, skills, employers, or credentials.
+- **Explicit Uncertainty**: Incomplete evidence or unverified tenure is clearly acknowledged as not evaluable.
+- **Deterministic-First Respect**: Related skills (e.g. MySQL for PostgreSQL) are explained as supporting context only without overriding missing status.
+- **Targeted Recommendations**: Generated exclusively for skills identified as gaps in Phase 9 (`missing`, `insufficient`, `not_evaluable`), providing concrete project workflows and verifiable proof artifacts.
+- **Zero Decision-Making**: Strictly non-evaluative; contains zero candidate rankings, shortlists, or automated hiring/rejection decisions.
+
+### Explanation API Examples
+
+#### 1. Generate Explanation from Profiles (`POST /api/v1/explanations/analyze`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/explanations/analyze" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "candidate": { ... },
+       "job": { ... }
+     }'
+```
+
+#### 2. Generate Explanation from Uploaded Files (`POST /api/v1/explanations/from-files`)
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/explanations/from-files" \
+     -F "resume_file=@data/sample/resumes/synthetic_software_engineer.pdf" \
+     -F "job_file=@data/sample/job_descriptions/backend_engineer_jd.pdf"
+```
+
+---
+
+## 12. Project Directory Structure
 
 ```
 p101-resume-screening/
@@ -648,7 +681,8 @@ p101-resume-screening/
 │   │   │       ├── skills.py          # Skill normalization & taxonomy endpoints (/normalize, /taxonomy)
 │   │   │       ├── matching.py        # Matching endpoints (/analyze, /from-files, /semantic)
 │   │   │       ├── scoring.py         # Hybrid fit scoring endpoint (/analyze)
-│   │   │       └── gaps.py            # Skill gap analysis endpoints (/analyze, /from-files)
+│   │   │       ├── gaps.py            # Skill gap analysis endpoints (/analyze, /from-files)
+│   │   │       └── explanations.py    # LLM explanations & recommendations (/analyze, /from-files)
 │   │   │
 │   │   ├── db/
 │   │   │   ├── __init__.py
@@ -661,7 +695,8 @@ p101-resume-screening/
 │   │   │   ├── validators.py          # JSON sanitization and Pydantic validation
 │   │   │   └── prompts/
 │   │   │       ├── resume_extraction.txt # Versioned resume extraction prompt
-│   │   │       └── job_extraction.txt    # Versioned job description extraction prompt
+│   │   │       ├── job_extraction.txt    # Versioned job description extraction prompt
+│   │   │       └── llm_explanation.txt   # Versioned explanation and recommendations prompt
 │   │   │
 │   │   └── services/                  # Core business logic services
 │   │       ├── __init__.py
@@ -677,6 +712,7 @@ p101-resume-screening/
 │   │       ├── semantic_matcher.py    # Semantic matching and false-positive protection matrix
 │   │       ├── scoring_engine.py      # Multi-layer hybrid fusion scoring engine
 │   │       ├── skill_gap_analyzer.py  # Evidence-grounded skill gap analyzer
+│   │       ├── llm_explanation_service.py # Evidence-grounded LLM explanations & recommendations
 │   │       ├── rule_filter.py
 │   │       ├── semantic_scorer.py
 │   │       ├── fusion.py
@@ -695,7 +731,8 @@ p101-resume-screening/
 │       ├── test_matching_engine.py    # Deterministic matching and API tests
 │       ├── test_semantic_matching.py  # Embedding, threshold, caching, and semantic match tests
 │       ├── test_scoring_engine.py     # Hybrid fusion scoring, priority, capping & API tests
-│       └── test_skill_gap_analyzer.py # Evidence-grounded skill gap analysis & API tests
+│       ├── test_skill_gap_analyzer.py # Evidence-grounded skill gap analysis & API tests
+│       └── test_llm_explanation.py    # Grounded LLM explanations & recommendations tests
 │
 ├── frontend/                  # Next.js / React dashboard (Phase 11)
 ├── data/
@@ -707,7 +744,7 @@ p101-resume-screening/
 
 ---
 
-## 12. Getting Started
+## 13. Getting Started
 
 ### Prerequisites
 - Python 3.11 or higher
@@ -774,7 +811,7 @@ pytest backend/tests/ -v
 
 ---
 
-## 13. Development Roadmap & Incremental Phases
+## 14. Development Roadmap & Incremental Phases
 
 - [x] **Phase 1: Project Setup + Backend + Database**
 - [x] **Phase 2: Resume PDF/DOCX Parsing**
@@ -785,9 +822,10 @@ pytest backend/tests/ -v
 - [x] **Phase 7: Embedding-Based Semantic Matching**
 - [x] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
 - [x] **Phase 9: Skill-Gap Analysis & Evidence Grounding**
-- [ ] **Phase 10: LLM Explanations & Personalized Recommendations**
+- [x] **Phase 10: LLM Explanations & Personalized Recommendations**
 - [ ] **Phase 11: Frontend Web Dashboard**
 - [ ] **Phase 12: End-to-End System Integration**
 - [ ] **Phase 13: Synthetic Evaluation & Benchmark Testing**
 - [ ] **Phase 14: Documentation & Docker Deployment**
+
 

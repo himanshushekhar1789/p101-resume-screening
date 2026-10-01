@@ -65,6 +65,7 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
             )
             result.gaps = gaps_res
 
+        score_res = None
         if payload.include_score:
             from backend.app.services.scoring_engine import get_scoring_engine
             scoring_engine = get_scoring_engine()
@@ -73,6 +74,24 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
                 weights=payload.scoring_weights,
                 llm_fit_score=payload.llm_fit_score,
             )
+
+        if payload.include_explanation:
+            from backend.app.services.llm_explanation_service import generate_candidate_explanation
+            explanation_res = await generate_candidate_explanation(
+                candidate=payload.candidate,
+                job=payload.job,
+                matching_result=result,
+                scoring_result=score_res,
+                skill_gap_result=result.gaps,
+                candidate_id=payload.candidate_id,
+                job_id=payload.job_id,
+                scoring_weights=payload.scoring_weights,
+                llm_fit_score=payload.llm_fit_score,
+                include_semantic=payload.include_semantic or False,
+            )
+            result.explanation = explanation_res
+
+        if score_res is not None:
             return CandidateJobMatchWithScoreResponse(
                 candidate_id=result.candidate_id,
                 job_id=result.job_id,
@@ -81,6 +100,7 @@ async def analyze_match_endpoint(payload: MatchingAnalyzeRequest):
                 summary=result.summary,
                 semantic_matches=result.semantic_matches,
                 gaps=result.gaps,
+                explanation=result.explanation,
                 score=score_res,
             )
 
@@ -146,6 +166,7 @@ async def match_from_files_endpoint(
     include_semantic: bool = False,
     include_score: bool = False,
     include_skill_gaps: bool = False,
+    include_explanation: bool = False,
 ):
     """
     Convenience endpoint accepting uploaded documents for both resume and JD,
@@ -186,10 +207,27 @@ async def match_from_files_endpoint(
             )
             match_result.gaps = gaps_res
 
+        score_res = None
         if include_score:
             from backend.app.services.scoring_engine import get_scoring_engine
             scoring_engine = get_scoring_engine()
             score_res = scoring_engine.compute_score(match_response=match_result)
+
+        if include_explanation:
+            from backend.app.services.llm_explanation_service import generate_candidate_explanation
+            explanation_res = await generate_candidate_explanation(
+                candidate=candidate_profile,
+                job=job_profile,
+                matching_result=match_result,
+                scoring_result=score_res,
+                skill_gap_result=match_result.gaps,
+                candidate_id=resume_file.filename,
+                job_id=job_file.filename,
+                include_semantic=include_semantic,
+            )
+            match_result.explanation = explanation_res
+
+        if score_res is not None:
             return CandidateJobMatchWithScoreResponse(
                 candidate_id=match_result.candidate_id,
                 job_id=match_result.job_id,
@@ -198,6 +236,7 @@ async def match_from_files_endpoint(
                 summary=match_result.summary,
                 semantic_matches=match_result.semantic_matches,
                 gaps=match_result.gaps,
+                explanation=match_result.explanation,
                 score=score_res,
             )
 
