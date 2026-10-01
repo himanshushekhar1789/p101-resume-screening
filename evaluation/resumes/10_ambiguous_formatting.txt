@@ -1,0 +1,17 @@
+JULIA ROBERTS-CLARK
+jclark@synthetic-domain.com | (555) 012-3456
+
+TOOLBOX & PROFICIENCIES
+PYTHON, jAvAsCrIpT, pOsTgReS, FastApi, DoCkEr, gIt
+
+CHRONOLOGY
+Technical Specialist — Apex Dynamics
+2021-06 to 2024-06 (3.0 years)
+Maintained backend microservices authored in PYTHON and FastApi. Administered pOsTgReS clusters and tuned relational SQL queries. Packaged internal automation tools in DoCkEr.
+
+Junior Programmer — CoreByte Ltd.
+2019-06 to 2021-05 (2.0 years)
+Assisted with web script development using jAvAsCrIpT and PYTHON. Utilized gIt for version tracking.
+
+ACADEMIA
+B.S. in Computer Science — State University (2019)

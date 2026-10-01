@@ -787,5 +787,64 @@ The frontend interfaces with the backend exclusively via `frontend/src/lib/api/c
   - `explanationFromFiles()`, `analyzeExplanation()`: `POST /api/v1/explanations/from-files`, `POST /api/v1/explanations/analyze`
 - Standardized error handling extracting HTTP error details (`detail` field) and converting them into user-friendly messages.
 
+---
+
+## 14. Comprehensive Evaluation, Benchmarking & End-to-End Validation (Phase 12)
+
+Phase 12 establishes a reproducible evaluation dataset and systematic benchmarking suite (`evaluation/`) covering all 11 prior architectural phases:
+
+```text
+Synthetic Dataset (10 Resumes, 5 JDs, 10 Curated Cases)
+                         │
+                         ▼
+        evaluation/run_evaluation.py (Benchmark Runner)
+                         │
+       ┌─────────────────┼──────────────────┐
+       ▼                 ▼                  ▼
+Component Tests   Scoring Invariants   10 Curated Cases
+(Norm, Pairs)         (A through F)     (E2E Pipeline)
+       │                 │                  │
+       └─────────────────┼──────────────────┘
+                         │
+                         ▼
+   Performance & Latency Telemetry + FastAPI Smoke Tests
+                         │
+                         ▼
+     Reports: evaluation/reports/latest.json & latest.md
+```
+
+### 14.1 Core Invariants Verified
+1. **Invariant A & C (Semantic Experience Exclusion)**: Career-experience semantic similarity does NOT contribute to numerical `semantic_fit`.
+2. **Invariant B (Rule Fit Experience Exclusion)**: Experience requirements do NOT contribute to deterministic `rule_fit`.
+3. **Invariant D (Experience Fit Tenure Isolation)**: Altering candidate experience tenure changes `experience_fit` only; `rule_fit` and `semantic_fit` remain strictly unchanged.
+4. **Invariant E (Weight Renormalization Integrity)**: Unavailable components (e.g. `llm_fit`) trigger dynamic renormalization, and active weights sum to exactly 1.0.
+5. **Invariant F (100% Deterministic Reproducibility)**: Candidate fit scores are bitwise identical across repeat executions for identical inputs.
+
+### 14.2 Protected Distinct Technologies
+The semantic false-positive protection matrix guarantees that distinct technologies are NEVER conflated, regardless of vector embedding proximity:
+- `Java` != `JavaScript`
+- `C` != `C++`
+- `C` != `C#`
+- `Python` != `PyTorch`
+- `React` != `React Native`
+- `AWS` != `AWS Lambda`
+
+### 14.3 Latency & Performance Telemetry
+- **Embedding Cache Speedup**: SentenceTransformer embeddings cached via SHA-256 hash yield >200x speedup (from ~25-45 ms warm inference down to ~0.10 ms cached lookup).
+- **Pipeline Stage Latencies (Median)**:
+  - Document Parsing: ~12 ms
+  - Extraction: ~44 ms
+  - Deterministic Matching: ~11 ms
+  - Hybrid Scoring: ~0.2 ms
+  - Skill-Gap Analysis: ~0.9 ms
+  - Grounded LLM Explanation: ~1.9 ms
+  - **End-to-End Pipeline**: ~73 ms median, ~131 ms p95.
+
+### 14.4 Critical Scope Boundaries
+1. **Zero Candidate Ranking**: No sorting, ranking, or leaderboard capabilities exist.
+2. **Zero Automated Hiring Actions**: All evaluations produce transparent decision-support evidence without automated hire/reject decisions.
+3. **Synthetic Ground Truth**: All evaluation profiles and JDs are synthetic engineering fixtures.
+
+
 
 

@@ -1,0 +1,24 @@
+Brian Miller
+Email: brian.miller@synthetic-domain.com | Phone: (555) 345-6789
+Location: Austin, TX
+
+SUMMARY
+Self-motivated aspiring developer with entry-level experience in basic Python scripting and personal hobby web projects using Flask and SQLite.
+
+SKILLS
+Python, Flask, SQLite, HTML, CSS, Git
+
+WORK EXPERIENCE
+
+Junior Web Assistant | Local Marketing Agency
+November 2023 – July 2024 (0.7 years)
+- Wrote basic automation scripts in Python to scrape public marketing data.
+- Built internal demo dashboards using Flask and local SQLite databases.
+- Updated static HTML and CSS landing pages for agency clients.
+
+PROJECTS
+Personal Blog Site: Built a simple blog in Python using Flask and SQLite for local storage.
+
+EDUCATION
+Self-Taught / Online Coding Tutorials
+No formal degree.

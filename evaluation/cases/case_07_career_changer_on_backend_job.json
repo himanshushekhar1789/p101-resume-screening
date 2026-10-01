@@ -1,0 +1,34 @@
+{
+  "case_id": "case_07_career_changer_on_backend_job",
+  "description": "Financial analyst career changer with 0.5 years bootcamp evaluated against Senior Backend Engineer JD.",
+  "resume_file": "07_career_changer.txt",
+  "job_file": "01_backend_engineer.txt",
+  "candidate_profile_type": "weak_match",
+  "expected": {
+    "all_must_haves_satisfied": false,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_gap_status": "insufficient"
+      },
+      "FastAPI": {
+        "priority": "must_have",
+        "expected_gap_status": "missing"
+      }
+    },
+    "experience": {
+      "expected_status": "partially_satisfied",
+      "required_years": 4.0,
+      "candidate_years_max": 1.0
+    },
+    "gaps": {
+      "must_have_gaps_count_min": 2
+    },
+    "scoring_invariants": {
+      "all_must_haves_satisfied": false
+    },
+    "llm_grounding": {
+      "forbid_hiring_decisions": true
+    }
+  }
+}

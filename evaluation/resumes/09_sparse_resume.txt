@@ -1,0 +1,15 @@
+Ian Douglas
+Email: ian.douglas@synthetic-domain.com
+Location: Remote
+
+SKILLS
+Python, FastAPI, AWS, Docker, Kubernetes, SQL
+
+EXPERIENCE
+Freelance Software Developer
+- Completed diverse software development projects using Python and FastAPI.
+- Configured Docker containers and worked on AWS cloud infrastructure.
+- Designed database schemas and wrote SQL queries.
+
+EDUCATION
+Self-Studied Computer Science Fundamentals

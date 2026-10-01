@@ -1,0 +1,31 @@
+Claire Zhang
+Email: claire.zhang@synthetic-domain.com | Phone: (555) 456-7890 | GitHub: github.com/clairezhang
+Location: San Francisco, CA
+
+SUMMARY
+Senior Frontend Engineer with 6 years of experience engineering accessible, high-performance web applications using JavaScript, React, TypeScript, and Next.js. Deep expertise in Tailwind CSS and state management.
+
+TECHNICAL SKILLS
+- Languages: JavaScript (ES6+), TypeScript, HTML5, CSS3
+- Frameworks & Libraries: React, Next.js, Redux Toolkit, Tailwind CSS, Vite
+- Testing & Quality: Jest, React Testing Library, Cypress, Vitest
+- Tools & Build: Webpack, Git, Figma, Docker
+
+PROFESSIONAL EXPERIENCE
+
+Senior Frontend Developer | NovaTech Solutions
+March 2021 – Present (3.5 years)
+- Led frontend architecture for SaaS portal using React 18, TypeScript, and Next.js.
+- Developed accessible responsive design system utilizing Tailwind CSS across 40+ modular components.
+- Reduced initial JavaScript bundle load time by 38% through code splitting and tree-shaking.
+- Mentored 4 mid-level engineers and established comprehensive Jest unit testing standards.
+
+Frontend Engineer | PixelCraft Studios
+July 2018 – February 2021 (2.7 years)
+- Built interactive web interfaces with JavaScript and React for high-traffic e-commerce storefronts.
+- Migrated legacy jQuery applications to modular React component architecture with TypeScript.
+- Implemented state management using Redux and styled UI using CSS3 and modern flexbox layouts.
+
+EDUCATION
+Bachelor of Science in Software Engineering
+San Jose State University | Graduated May 2018

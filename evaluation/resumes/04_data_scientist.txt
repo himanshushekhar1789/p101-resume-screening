@@ -1,0 +1,33 @@
+Dr. David Chen
+Email: david.chen@synthetic-domain.com | Phone: (555) 567-8901
+Location: Boston, MA
+
+PROFESSIONAL SUMMARY
+Data Scientist and Machine Learning Engineer with 4 years of experience delivering predictive models, NLP transformers, and data pipelines using Python, PyTorch, Scikit-learn, and SQL.
+
+CORE COMPETENCIES
+- Machine Learning & Deep Learning: PyTorch, Scikit-learn, TensorFlow, Hugging Face
+- NLP & LLMs: Natural Language Processing (NLP), Named Entity Recognition (NER), Word Embeddings
+- Languages & Data: Python, SQL, R, Pandas, NumPy
+- Infrastructure: Docker, MLflow, AWS S3, PostgreSQL
+
+WORK EXPERIENCE
+
+Lead Data Scientist | BioAnalytics Corp
+September 2021 – Present (3.0 years)
+- Built and fine-tuned deep learning models in Python using PyTorch for clinical document NLP classification.
+- Engineered machine learning pipelines using Scikit-learn, cross-validation, and hyperparameter tuning.
+- Queried multi-terabyte data warehouses using complex SQL joins, aggregations, and window functions.
+- Packaged model inference endpoints in Docker containers deployed on AWS ECS.
+
+Data Science Associate | QuantMetrics Lab
+July 2020 – August 2021 (1.1 years)
+- Designed regression and classification algorithms in Python with Pandas and Scikit-learn.
+- Extracted and cleaned clinical dataset records using PostgreSQL and Python scripts.
+
+EDUCATION
+Master of Science in Data Science
+Boston University | 2020
+
+Bachelor of Science in Statistics
+University of Massachusetts | 2018

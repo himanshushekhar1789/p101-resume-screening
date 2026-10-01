@@ -1,0 +1,38 @@
+{
+  "case_id": "case_06_junior_on_entry_job",
+  "description": "Junior developer with 1.0 year internship evaluated against Entry-Level Software Engineer JD.",
+  "resume_file": "06_junior_software_engineer.txt",
+  "job_file": "05_entry_level_engineer.txt",
+  "candidate_profile_type": "strong_match",
+  "expected": {
+    "all_must_haves_satisfied": true,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "Git": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      }
+    },
+    "experience": {
+      "expected_status": "satisfied",
+      "required_years": 0.5,
+      "candidate_years_min": 1.0
+    },
+    "education": {
+      "expected_status": "satisfied"
+    },
+    "gaps": {
+      "must_have_gaps_count": 0
+    },
+    "scoring_invariants": {
+      "experience_fit": 1.0,
+      "all_must_haves_satisfied": true
+    },
+    "llm_grounding": {
+      "forbid_hiring_decisions": true
+    }
+  }
+}

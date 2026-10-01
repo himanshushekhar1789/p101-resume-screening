@@ -1,0 +1,52 @@
+{
+  "case_id": "case_03_strong_frontend_on_frontend_job",
+  "description": "Senior frontend engineer with JavaScript/TypeScript/React background evaluated against Senior Frontend Developer JD.",
+  "resume_file": "03_strong_frontend.txt",
+  "job_file": "02_frontend_developer.txt",
+  "candidate_profile_type": "strong_match",
+  "expected": {
+    "all_must_haves_satisfied": true,
+    "skills": {
+      "JavaScript": {
+        "priority": "must_have",
+        "expected_status": "satisfied",
+        "aliases_tested": ["JS", "ECMAScript"]
+      },
+      "React": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "TypeScript": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "Tailwind CSS": {
+        "priority": "nice_to_have",
+        "expected_status": "satisfied"
+      },
+      "Next.js": {
+        "priority": "nice_to_have",
+        "expected_status": "satisfied"
+      }
+    },
+    "experience": {
+      "expected_status": "satisfied",
+      "required_years": 3.0,
+      "candidate_years_min": 5.0
+    },
+    "education": {
+      "expected_status": "satisfied"
+    },
+    "gaps": {
+      "must_have_gaps_count": 0
+    },
+    "scoring_invariants": {
+      "rule_fit_min": 0.85,
+      "experience_fit": 1.0,
+      "all_must_haves_satisfied": true
+    },
+    "llm_grounding": {
+      "forbid_hiring_decisions": true
+    }
+  }
+}

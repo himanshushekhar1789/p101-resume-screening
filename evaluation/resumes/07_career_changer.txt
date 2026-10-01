@@ -1,0 +1,28 @@
+Grace Hopper-Smith
+Email: grace.hs@synthetic-domain.com | Phone: (555) 890-1234
+Location: New York, NY
+
+PROFESSIONAL SUMMARY
+Analytical professional with 8 years of quantitative background in financial modeling and risk analysis, transitioning into software engineering. Proficient in Python, SQL, and relational databases.
+
+TECHNICAL SKILLS
+- Programming: Python, SQL
+- Data & Analysis: Pandas, Excel/VBA, PostgreSQL basics
+- Web & Tools: Git, GitHub, REST APIs
+
+PROFESSIONAL EXPERIENCE
+
+Senior Financial Analyst | Global Asset Advisory
+January 2016 – December 2023 (8.0 years)
+- Conducted quantitative risk valuation and automated financial reporting workflows using Python and Excel.
+- Queried enterprise financial data using SQL across relational databases.
+- Built statistical forecasting spreadsheets and cash-flow models.
+
+Software Engineering Immersive Fellow | CodeForward Academy
+January 2024 – June 2024 (0.5 years)
+- Completed 600+ hours of full-time software engineering training in Python, Object-Oriented Programming, and SQL.
+- Built a portfolio project integrating third-party financial REST APIs using Python.
+
+EDUCATION
+Bachelor of Arts in Economics
+New York University | 2015

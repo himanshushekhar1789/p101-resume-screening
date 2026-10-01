@@ -1,0 +1,22 @@
+Job Title: Senior Backend Engineer
+Department: Core Infrastructure Engineering
+Location: Remote / Hybrid
+
+About the Role:
+We are looking for an experienced Senior Backend Engineer to design, scale, and maintain our high-throughput cloud microservices.
+
+Responsibilities:
+- Design and deploy scalable, fault-tolerant REST APIs and background services.
+- Optimize relational database queries, schema designs, and indexing strategies.
+- Collaborate with frontend and DevOps engineers to implement reliable end-to-end features.
+
+Must-Have Requirements:
+- Minimum 3+ years of professional backend development experience with Python.
+- Minimum 2+ years of production experience developing web services using FastAPI.
+- Verifiable hands-on experience with PostgreSQL relational database management.
+- Minimum 4.0 years of general backend software engineering experience.
+- Bachelor's degree in Computer Science, Software Engineering, or related technical discipline.
+
+Nice-to-Have Requirements:
+- Experience with Redis distributed caching and pub/sub.
+- Hands-on experience containerizing services with Docker.

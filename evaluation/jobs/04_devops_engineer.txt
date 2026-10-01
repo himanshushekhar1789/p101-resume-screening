@@ -1,0 +1,22 @@
+Job Title: Cloud DevOps & Infrastructure Engineer
+Department: Platform & Reliability Engineering
+Location: Chicago, IL / Remote
+
+About the Role:
+We need a Cloud DevOps Engineer to scale our multi-region cloud infrastructure and maintain Kubernetes cluster reliability.
+
+Responsibilities:
+- Manage production container orchestration clusters on AWS EKS.
+- Author modular Infrastructure as Code using Terraform.
+- Automate CI/CD pipelines for zero-downtime microservice deployments.
+
+Must-Have Requirements:
+- Minimum 2+ years of production container orchestration experience with Kubernetes.
+- Minimum 3+ years of containerization experience using Docker.
+- Minimum 2+ years of hands-on cloud engineering experience on AWS.
+- Minimum 4.0 years of general DevOps or cloud infrastructure experience.
+
+Nice-to-Have Requirements:
+- Experience with Terraform Infrastructure as Code.
+- Experience building automated CI/CD pipelines (e.g. GitHub Actions, Jenkins).
+- AWS Certified Solutions Architect or Certified Kubernetes Administrator (CKA).

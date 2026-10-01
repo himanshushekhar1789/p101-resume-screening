@@ -1,0 +1,21 @@
+Job Title: Entry-Level Software Engineer
+Department: Early Career Engineering
+Location: Denver, CO / Hybrid
+
+About the Role:
+We are hiring entry-level software developers eager to learn, write clean code, and contribute to production services.
+
+Responsibilities:
+- Write well-tested code in Python or JavaScript.
+- Collaborate on software components, participate in pull request reviews, and debug issues.
+- Learn modern cloud engineering best practices under senior engineer guidance.
+
+Must-Have Requirements:
+- Proficiency in Python or JavaScript fundamentals.
+- Practical experience with Git version control and GitHub workflow.
+- Minimum 0.5 years of hands-on software development experience (internships, academic projects, or co-ops).
+- Bachelor's degree in Computer Science, Software Engineering, or related technical discipline.
+
+Nice-to-Have Requirements:
+- Familiarity with Linux terminal environments.
+- Basic understanding of Docker containers.

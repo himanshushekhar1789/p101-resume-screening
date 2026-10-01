@@ -1,0 +1,40 @@
+{
+  "case_id": "case_05_devops_on_devops_job",
+  "description": "DevOps Engineer with Kubernetes and AWS experience evaluated against Cloud DevOps JD.",
+  "resume_file": "05_devops_cloud.txt",
+  "job_file": "04_devops_engineer.txt",
+  "candidate_profile_type": "strong_match",
+  "expected": {
+    "all_must_haves_satisfied": true,
+    "skills": {
+      "Kubernetes": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "Docker": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "AWS": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      }
+    },
+    "experience": {
+      "expected_status": "satisfied",
+      "required_years": 4.0,
+      "candidate_years_min": 4.5
+    },
+    "gaps": {
+      "must_have_gaps_count": 0
+    },
+    "scoring_invariants": {
+      "rule_fit_min": 0.85,
+      "experience_fit": 1.0,
+      "all_must_haves_satisfied": true
+    },
+    "llm_grounding": {
+      "forbid_hiring_decisions": true
+    }
+  }
+}

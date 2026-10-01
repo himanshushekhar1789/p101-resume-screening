@@ -1,0 +1,28 @@
+Frankie Adams
+Email: frankie.adams@synthetic-domain.com | Phone: (555) 789-0123
+Location: Denver, CO
+
+OBJECTIVE
+Motivated Computer Science graduate seeking an entry-level software engineering role to apply foundational skills in Python, Git, and web technologies.
+
+SKILLS
+- Languages: Python, JavaScript, HTML, CSS
+- Tools & VCS: Git, GitHub, Linux, VS Code
+- Concepts: Object-Oriented Programming, Data Structures, Algorithms, Unit Testing
+
+WORK EXPERIENCE
+
+Software Engineering Intern | Peak Software
+June 2023 – June 2024 (1.0 year)
+- Contributed Python code to backend data processing tasks and bug fixes.
+- Used Git for daily version control, branch management, and team pull requests.
+- Created unit tests with Pytest to improve codebase test coverage by 15%.
+- Worked in Linux development environments.
+
+ACADEMIC PROJECTS
+- Student Portal Web App: Built a full-stack web project using Python, SQLite, HTML, and CSS.
+- Algorithm Visualizer: Developed interactive sorting and graph visualization scripts in Python.
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of Colorado Boulder | Graduated May 2024 (GPA: 3.7)

@@ -1,0 +1,61 @@
+{
+  "case_id": "case_01_strong_backend_on_backend_job",
+  "description": "Senior backend engineer with 5+ years verified Python, FastAPI, and PostgreSQL evaluated against Senior Backend Engineer JD.",
+  "resume_file": "01_strong_backend.txt",
+  "job_file": "01_backend_engineer.txt",
+  "candidate_profile_type": "strong_match",
+  "expected": {
+    "all_must_haves_satisfied": true,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_status": "satisfied",
+        "expected_match_method": "experience_verified",
+        "min_expected_years": 3.0
+      },
+      "FastAPI": {
+        "priority": "must_have",
+        "expected_status": "satisfied",
+        "expected_match_method": "experience_verified",
+        "min_expected_years": 2.0
+      },
+      "PostgreSQL": {
+        "priority": "must_have",
+        "expected_status": "satisfied",
+        "expected_match_method": "experience_verified"
+      },
+      "Redis": {
+        "priority": "nice_to_have",
+        "expected_status": "satisfied"
+      },
+      "Docker": {
+        "priority": "nice_to_have",
+        "expected_status": "satisfied"
+      }
+    },
+    "experience": {
+      "expected_status": "satisfied",
+      "required_years": 4.0,
+      "candidate_years_min": 4.5
+    },
+    "education": {
+      "expected_status": "satisfied",
+      "expected_degree": "Bachelor of Science",
+      "expected_field": "Computer Science"
+    },
+    "gaps": {
+      "must_have_gaps_count": 0,
+      "missing_skills": []
+    },
+    "scoring_invariants": {
+      "rule_fit_min": 0.85,
+      "experience_fit": 1.0,
+      "all_must_haves_satisfied": true
+    },
+    "llm_grounding": {
+      "hallucination_forbidden": ["Kubernetes", "AWS Lambda"],
+      "must_contain_strengths": ["Python", "FastAPI"],
+      "forbid_hiring_decisions": true
+    }
+  }
+}

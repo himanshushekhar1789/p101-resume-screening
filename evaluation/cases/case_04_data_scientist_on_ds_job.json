@@ -1,0 +1,44 @@
+{
+  "case_id": "case_04_data_scientist_on_ds_job",
+  "description": "Data Scientist with PyTorch and NLP experience evaluated against Data Scientist JD.",
+  "resume_file": "04_data_scientist.txt",
+  "job_file": "03_data_scientist.txt",
+  "candidate_profile_type": "strong_match",
+  "expected": {
+    "all_must_haves_satisfied": true,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "PyTorch": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "SQL": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      }
+    },
+    "experience": {
+      "expected_status": "satisfied",
+      "required_years": 3.0,
+      "candidate_years_min": 3.5
+    },
+    "education": {
+      "expected_status": "satisfied",
+      "expected_degree": "Master of Science"
+    },
+    "gaps": {
+      "must_have_gaps_count": 0
+    },
+    "scoring_invariants": {
+      "rule_fit_min": 0.85,
+      "experience_fit": 1.0,
+      "all_must_haves_satisfied": true
+    },
+    "llm_grounding": {
+      "forbid_hiring_decisions": true
+    }
+  }
+}

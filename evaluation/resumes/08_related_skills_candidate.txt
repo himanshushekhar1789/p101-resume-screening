@@ -1,0 +1,25 @@
+Hector Vance
+Email: hector.vance@synthetic-domain.com | Phone: (555) 901-2345
+Location: Atlanta, GA
+
+SUMMARY
+Backend Web Developer with 4 years of experience building Python web services using Flask, MySQL relational database, and Celery background workers. Containerized deployments with Docker.
+
+TECHNICAL SKILLS
+- Languages: Python, SQL, Bash
+- Frameworks: Flask, Jinja2, Celery, SQLAlchemy
+- Databases: MySQL, MariaDB, Memcached
+- DevOps: Docker, Docker Compose, Git
+
+WORK EXPERIENCE
+
+Backend Engineer | Apex Cloud Solutions
+July 2020 – Present (4.0 years)
+- Developed REST web services in Python using Flask and SQLAlchemy.
+- Managed and optimized MySQL database tables, relational queries, and replication setups.
+- Orchestrated background task processing with Celery and RabbitMQ queues.
+- Packaged services into Docker containers and managed multi-container services with Docker Compose.
+
+EDUCATION
+Bachelor of Science in Computer Information Systems
+Georgia State University | 2020

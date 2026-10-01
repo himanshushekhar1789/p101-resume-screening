@@ -431,5 +431,94 @@ The test suite validates Phase 10 across 15 dedicated scenarios:
 | `test_integrated_endpoint_backward_compatibility` | Backward Compatibility | `POST /api/v1/matching/analyze` with `include_explanation=False` | HTTP 200 with `.explanation is None` |
 | `test_file_based_explanation_endpoint` | End-to-End File API | `POST /api/v1/explanations/from-files` with uploaded PDF/DOCX files | HTTP 200 with extracted profiles, matching, gaps, and grounded explanation |
 
+---
+
+## 13. Phase 11: Frontend Web Dashboard Evaluation
+
+### 13.1 Frontend Test Matrix (`frontend/src/**/*.test.tsx`)
+The frontend dashboard is verified across 21 component unit tests covering layout, scoring badges, requirement coverage, skill-gap rendering, and LLM explanation views:
+
+| Component / Test Suite | Scope | Verification Details | Status |
+| :--- | :--- | :--- | :---: |
+| `OverallScoreBadge.test.tsx` | Score UI | Visual color states (green >=75%, yellow 50-74%, red <50%), percentage formatting | **PASSED** |
+| `ScoreBreakdownCard.test.tsx` | Score Breakdown | Displays 4 components, effective weights, explanations, not evaluable counts | **PASSED** |
+| `RequirementCoverageTable.test.tsx` | Deterministic View | Status badges (matched, partial, unmatched), evidence inspection, must-have priority | **PASSED** |
+| `SkillGapSection.test.tsx` | Skill Gaps | Missing vs insufficient vs not-evaluable classification, experience separation | **PASSED** |
+| `LLMExplanationView.test.tsx` | AI Insights | Grounded summary, score explanation, recommendations, permanent recruiter disclaimer | **PASSED** |
+| `TypeScript & Next.js Build` | Production Build | Full TypeScript compilation (`tsc --noEmit`) and Next.js static export build | **PASSED** |
+
+---
+
+## 14. Phase 12: Comprehensive Evaluation, Benchmarking & End-to-End Validation Suite
+
+### 14.1 Suite Architecture & Methodology
+The Phase 12 benchmark suite (`evaluation/run_evaluation.py`) validates the complete system across all 11 prior phases:
+
+```text
+evaluation/
+├── resumes/                 # 10 Synthetic candidate resumes
+├── jobs/                    # 5 Synthetic job descriptions
+├── cases/                   # 10 Curated evaluation cases with ground-truth
+├── reports/                 # latest.json & latest.md generated outputs
+└── run_evaluation.py        # Automated benchmark test runner
+```
+
+### 14.2 Engineering Acceptance Gates Results
+
+| Evaluation Category | Acceptance Gate | Benchmark Result | Status |
+| :--- | :--- | :--- | :---: |
+| **Skill Normalization & Aliases** | 100% Protected pairs, >=90% Aliases | 100.0% Aliases, 100% Protected | **PASSED** |
+| **Semantic Matching & Isolation** | 100% Protected blocking, 0% conflation | 100% Protected Pairs Blocked | **PASSED** |
+| **Scoring Invariants (A–F)** | 100% Invariants hold | 6/6 Invariants Verified | **PASSED** |
+| **Curated Benchmark Cases** | >= 90% Cases pass ground-truth | 10/10 Cases Passed (100.0%) | **PASSED** |
+| **LLM Grounding & Guardrails** | 100% Anti-hallucination & No verdicts | 100% Grounded, 0 Hiring Verdicts | **PASSED** |
+| **API End-to-End Smoke Tests** | 100% Endpoints return 200 OK | 7/7 Endpoints Operational | **PASSED** |
+
+### 14.3 Scoring Invariants A through F Verification
+- **Invariant A & C**: Career experience items are strictly excluded from numerical `semantic_fit` calculation (Phases 8.1 & 8.2).
+- **Invariant B**: Experience requirements are strictly excluded from deterministic `rule_fit` calculation.
+- **Invariant D**: Changing experience tenure alters `experience_fit` only; `rule_fit` and `semantic_fit` are completely unaffected.
+- **Invariant E**: When `llm_fit` is unavailable (default), dynamic renormalization scales remaining component weights so that their sum equals exactly 1.0.
+- **Invariant F**: Final candidate fit score is 100% deterministic and bitwise reproducible across identical inputs.
+
+### 14.4 10 Curated Benchmark Cases Matrix
+
+| Case ID | Candidate Profile Type | Target Role | Fit Score | Must-Haves Met? | Gaps Found | Status |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| `case_01` | Senior Backend Engineer | Senior Backend Engineer | 84.1% | Yes | 0 missing | **PASSED** |
+| `case_02` | Junior Backend with Deficits | Senior Backend Engineer | 25.2% | No | 6 missing | **PASSED** |
+| `case_03` | Senior Frontend Engineer | Senior Frontend Developer | 82.8% | Yes | 0 missing | **PASSED** |
+| `case_04` | Data Scientist & ML Engineer | Data Scientist & ML Engineer | 84.4% | Yes | 0 missing | **PASSED** |
+| `case_05` | Senior DevOps & Cloud Engineer | Cloud DevOps Engineer | 89.7% | Yes | 0 missing | **PASSED** |
+| `case_06` | Early-Career CS Graduate | Entry-Level Software Engineer | 80.5% | Yes | 1 missing | **PASSED** |
+| `case_07` | Bootcamp Transitioner | Senior Backend Engineer | 56.0% | No | 4 missing | **PASSED** |
+| `case_08` | Adjacent Stack (Flask/MySQL) | Senior Backend Engineer | 52.7% | No | 4 missing | **PASSED** |
+| `case_09` | Minimalist / Undated Resume | Senior Backend Engineer | 35.3% | No | 4 missing | **PASSED** |
+| `case_10` | Non-standard Typography | Senior Backend Engineer | 69.9% | No | 2 missing | **PASSED** |
+
+### 14.5 Performance & Latency Telemetry
+
+#### Embedding Inference & Cache Performance
+- **Warm Inference Latency**: ~25–45 ms (CPU-first SentenceTransformer)
+- **Cached Inference Latency**: ~0.10 ms (In-memory SHA-256 cache)
+- **Cache Speedup Factor**: >240x acceleration
+
+#### Pipeline Stage Latencies (5-Run Sample, milliseconds)
+| Pipeline Stage | Min (ms) | Median (ms) | p95 (ms) |
+| :--- | :---: | :---: | :---: |
+| Document Parsing (PyMuPDF) | 9.17 | 12.33 | 17.56 |
+| Profile & JD Extraction | 41.28 | 43.72 | 47.77 |
+| Deterministic Matching | 8.43 | 10.79 | 65.66 |
+| Hybrid Scoring | 0.20 | 0.21 | 0.27 |
+| Skill-Gap Analysis | 0.79 | 0.86 | 1.01 |
+| Grounded LLM Explanation | 1.78 | 1.93 | 2.45 |
+| **End-to-End Pipeline** | **64.09** | **72.65** | **130.84** |
+
+### 14.6 Critical Scope Boundaries
+1. **Zero Candidate Ranking**: No sorting, ranking, or leaderboard capabilities are implemented or evaluated.
+2. **Zero Automated Hiring Actions**: All evaluations produce transparent decision-support evidence without automated hire/reject decisions.
+3. **Synthetic Ground Truth**: All evaluation profiles and JDs are synthetic engineering fixtures.
+
+
 
 

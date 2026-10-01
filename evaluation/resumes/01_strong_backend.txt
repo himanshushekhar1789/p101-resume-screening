@@ -1,0 +1,34 @@
+Alex Morgan
+Email: alex.morgan@synthetic-domain.com | Phone: (555) 234-5678 | GitHub: github.com/alexmorgan-dev
+Location: Seattle, WA
+
+PROFESSIONAL SUMMARY
+Senior Backend Engineer with over 5 years of experience building high-throughput REST and GraphQL microservices using Python, FastAPI, and PostgreSQL. Proven track record of containerized cloud deployments with Docker and Redis distributed caching.
+
+TECHNICAL SKILLS
+- Programming Languages: Python, Go, SQL
+- Frameworks & Libraries: FastAPI, Pydantic, SQLAlchemy, Alembic
+- Databases & Storage: PostgreSQL, Redis, Elasticsearch
+- Cloud & Infrastructure: Docker, Kubernetes, AWS (S3, ECS), Git, CI/CD
+
+PROFESSIONAL EXPERIENCE
+
+Senior Backend Engineer | CloudScale Systems Inc.
+January 2021 – Present (3.5 years)
+- Architected and deployed microservices using Python 3.11 and FastAPI handling 15,000 requests per second.
+- Optimized PostgreSQL relational queries, indexing, and partitioning, cutting p95 query latency by 45%.
+- Implemented multi-region Redis caching layer to offload high-volume read traffic from primary database.
+- Containerized all internal services using Docker multi-stage builds and automated CI/CD deployments.
+
+Backend Software Engineer | DataStream Tech
+June 2019 – December 2020 (1.5 years)
+- Built resilient RESTful APIs in Python using FastAPI and PostgreSQL for enterprise telemetry collection.
+- Maintained Docker compose development environments and orchestrated automated unit and integration tests.
+- Designed schema migrations using Alembic across PostgreSQL clusters.
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of Washington | Graduated May 2019
+
+CERTIFICATIONS
+- AWS Certified Developer – Associate (2022)

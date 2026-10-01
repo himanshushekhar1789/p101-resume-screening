@@ -1,0 +1,50 @@
+{
+  "case_id": "case_02_weak_backend_on_backend_job",
+  "description": "Junior self-taught developer with tenure shortfall and missing criteria evaluated against Senior Backend Engineer JD.",
+  "resume_file": "02_weak_backend.txt",
+  "job_file": "01_backend_engineer.txt",
+  "candidate_profile_type": "weak_match",
+  "expected": {
+    "all_must_haves_satisfied": false,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_status": "partially_satisfied",
+        "expected_gap_status": "insufficient"
+      },
+      "FastAPI": {
+        "priority": "must_have",
+        "expected_status": "unmatched",
+        "expected_gap_status": "missing"
+      },
+      "PostgreSQL": {
+        "priority": "must_have",
+        "expected_status": "unmatched",
+        "expected_gap_status": "missing"
+      }
+    },
+    "experience": {
+      "expected_status": "partially_satisfied",
+      "required_years": 4.0,
+      "candidate_years_max": 1.0,
+      "shortfall_min": 3.0
+    },
+    "education": {
+      "expected_status": "unmatched"
+    },
+    "gaps": {
+      "must_have_gaps_count_min": 2,
+      "missing_skills": ["FastAPI", "PostgreSQL"],
+      "insufficient_skills": ["Python"]
+    },
+    "scoring_invariants": {
+      "rule_fit_max": 0.40,
+      "experience_fit_max": 0.30,
+      "all_must_haves_satisfied": false
+    },
+    "llm_grounding": {
+      "recommendations_must_target": ["FastAPI", "PostgreSQL"],
+      "forbid_hiring_decisions": true
+    }
+  }
+}

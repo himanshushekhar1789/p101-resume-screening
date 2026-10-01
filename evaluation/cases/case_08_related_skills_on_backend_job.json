@@ -1,0 +1,40 @@
+{
+  "case_id": "case_08_related_skills_on_backend_job",
+  "description": "Candidate with Flask and MySQL evaluated against JD requiring FastAPI and PostgreSQL. Verifies deterministic missing status despite semantic similarity.",
+  "resume_file": "08_related_skills_candidate.txt",
+  "job_file": "01_backend_engineer.txt",
+  "candidate_profile_type": "semantic_adjacent",
+  "expected": {
+    "all_must_haves_satisfied": false,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_status": "satisfied"
+      },
+      "FastAPI": {
+        "priority": "must_have",
+        "expected_status": "unmatched",
+        "expected_gap_status": "missing",
+        "semantic_related_skill": "Flask",
+        "semantic_must_not_override_deterministic": true
+      },
+      "PostgreSQL": {
+        "priority": "must_have",
+        "expected_status": "unmatched",
+        "expected_gap_status": "missing",
+        "semantic_related_skill": "MySQL",
+        "semantic_must_not_override_deterministic": true
+      }
+    },
+    "gaps": {
+      "missing_skills": ["FastAPI", "PostgreSQL"]
+    },
+    "scoring_invariants": {
+      "all_must_haves_satisfied": false
+    },
+    "llm_grounding": {
+      "recommendations_must_target": ["FastAPI", "PostgreSQL"],
+      "forbid_hiring_decisions": true
+    }
+  }
+}

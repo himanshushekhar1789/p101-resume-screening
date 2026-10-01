@@ -1,0 +1,23 @@
+Job Title: Data Scientist & Machine Learning Engineer
+Department: Applied AI & Analytics
+Location: Boston, MA / Remote
+
+About the Role:
+We are looking for a Data Scientist to build, evaluate, and deploy predictive models and natural language processing pipelines.
+
+Responsibilities:
+- Develop supervised and unsupervised machine learning algorithms.
+- Build NLP pipelines for automated document classification and entity extraction.
+- Clean and query large relational and analytical datasets.
+
+Must-Have Requirements:
+- Minimum 3+ years of programming and data analysis experience in Python.
+- Minimum 2+ years of hands-on deep learning model development with PyTorch.
+- Strong proficiency in SQL for relational data querying and aggregation.
+- Minimum 3.0 years of professional data science experience.
+- Master's degree in Data Science, Computer Science, Statistics, or quantitative discipline.
+
+Nice-to-Have Requirements:
+- Applied experience with Natural Language Processing (NLP) or transformer models.
+- Familiarity with Scikit-learn and MLflow experiment tracking.
+- Experience containerizing models with Docker.

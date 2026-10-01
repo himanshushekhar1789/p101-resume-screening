@@ -1,0 +1,26 @@
+{
+  "case_id": "case_09_sparse_resume_on_backend_job",
+  "description": "Sparse resume with skills listed without dates evaluated against JD requiring minimum verified tenure.",
+  "resume_file": "09_sparse_resume.txt",
+  "job_file": "01_backend_engineer.txt",
+  "candidate_profile_type": "sparse_unverified",
+  "expected": {
+    "all_must_haves_satisfied": false,
+    "skills": {
+      "Python": {
+        "priority": "must_have",
+        "expected_status_alternatives": ["not_evaluable", "partially_satisfied", "satisfied"]
+      }
+    },
+    "experience": {
+      "expected_status": "not_evaluable"
+    },
+    "scoring_invariants": {
+      "all_must_haves_satisfied": false
+    },
+    "llm_grounding": {
+      "uncertainty_preserved": true,
+      "forbid_hiring_decisions": true
+    }
+  }
+}

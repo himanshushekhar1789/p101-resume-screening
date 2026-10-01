@@ -1,0 +1,215 @@
+{
+  "metadata": {
+    "timestamp": "2026-10-01 05:24:52 UTC",
+    "python_version": "3.13.5",
+    "platform": "win32",
+    "dataset_version": "1.0-synthetic"
+  },
+  "summary": {
+    "total_benchmarks": 0,
+    "passed_benchmarks": 0,
+    "failed_benchmarks": 0
+  },
+  "normalization": {
+    "alias_test_cases": 13,
+    "alias_accuracy": 1.0,
+    "protected_distinction_cases": 6,
+    "protected_distinction_accuracy": 1.0,
+    "stopword_cases": 10,
+    "stopword_rejection_accuracy": 1.0,
+    "overall_normalization_pass": true
+  },
+  "semantic_matching": {
+    "related_pairs_evaluated": 3,
+    "related_pairs_passed": 1,
+    "related_scores": {
+      "FastAPI <-> Flask": 0.23,
+      "PostgreSQL <-> MySQL": 0.5469,
+      "Docker <-> Kubernetes": 0.3151
+    },
+    "unrelated_pairs_evaluated": 3,
+    "unrelated_pairs_passed": 3,
+    "unrelated_scores": {
+      "React <-> Accounting": 0.0526,
+      "Python <-> Accounting": 0.2864,
+      "Docker <-> Graphic Design": 0.1283
+    },
+    "protected_pairs_evaluated": 5,
+    "protected_pairs_blocked": 5,
+    "semantic_matching_pass": false
+  },
+  "scoring_invariants": {
+    "invariant_A_exp_sem_excluded_from_semantic_fit": true,
+    "invariant_B_exp_excluded_from_rule_fit": true,
+    "invariant_C_exp_semantic_non_interference": true,
+    "invariant_D_exp_tenure_isolated_to_experience_fit": true,
+    "invariant_E_weight_renormalization_integrity": true,
+    "invariant_F_deterministic_reproducibility": true,
+    "all_invariants_passed": true
+  },
+  "deterministic_matching": {
+    "total_requirements_evaluated": 30,
+    "correct_determinations": 2,
+    "status_matches": 27,
+    "priority_accuracy": 0
+  },
+  "skill_gaps": {
+    "total_gaps_evaluated": 10,
+    "correct_gap_classifications": 10,
+    "experience_isolation_verified": 10
+  },
+  "llm_grounding": {
+    "total_checks": 10,
+    "no_hallucinations_verified": 10,
+    "no_hiring_decisions_verified": 10,
+    "recommendations_strictly_on_gaps": 10
+  },
+  "performance": {
+    "warm_embedding_inference_ms": 25.7,
+    "cached_embedding_inference_ms": 0.104,
+    "cache_speedup_factor": 247.4,
+    "pipeline_stages_ms": {
+      "parsing": {
+        "min": 9.17,
+        "median": 12.33,
+        "p95": 17.56
+      },
+      "extraction": {
+        "min": 41.28,
+        "median": 43.72,
+        "p95": 47.77
+      },
+      "matching": {
+        "min": 8.43,
+        "median": 10.79,
+        "p95": 65.66
+      },
+      "scoring": {
+        "min": 0.2,
+        "median": 0.21,
+        "p95": 0.27
+      },
+      "gaps": {
+        "min": 0.79,
+        "median": 0.86,
+        "p95": 1.01
+      },
+      "explanation": {
+        "min": 1.78,
+        "median": 1.93,
+        "p95": 2.45
+      },
+      "end_to_end": {
+        "min": 64.09,
+        "median": 72.65,
+        "p95": 130.84
+      }
+    }
+  },
+  "api_smoke_tests": {
+    "endpoints_tested": 7,
+    "endpoints_passed": 7,
+    "tests": {
+      "GET /api/v1/health": true,
+      "POST /api/v1/jobs/analyze": true,
+      "POST /api/v1/resumes/parse": true,
+      "POST /api/v1/matching/from-files": true,
+      "POST /api/v1/explanations/from-files": true,
+      "POST /api/v1/skills/normalize": true,
+      "GET /api/v1/skills/taxonomy": true
+    },
+    "all_endpoints_passed": true
+  },
+  "case_results": [
+    {
+      "case_id": "case_01_strong_backend_on_backend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.8413,
+      "must_haves_satisfied": true,
+      "missing_skills_count": 0,
+      "recommendations_count": 0
+    },
+    {
+      "case_id": "case_02_weak_backend_on_backend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.2516,
+      "must_haves_satisfied": false,
+      "missing_skills_count": 6,
+      "recommendations_count": 7
+    },
+    {
+      "case_id": "case_03_strong_frontend_on_frontend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.828,
+      "must_haves_satisfied": true,
+      "missing_skills_count": 0,
+      "recommendations_count": 0
+    },
+    {
+      "case_id": "case_04_data_scientist_on_ds_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.8441,
+      "must_haves_satisfied": true,
+      "missing_skills_count": 0,
+      "recommendations_count": 0
+    },
+    {
+      "case_id": "case_05_devops_on_devops_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.8974,
+      "must_haves_satisfied": true,
+      "missing_skills_count": 0,
+      "recommendations_count": 0
+    },
+    {
+      "case_id": "case_06_junior_on_entry_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.8052,
+      "must_haves_satisfied": true,
+      "missing_skills_count": 1,
+      "recommendations_count": 1
+    },
+    {
+      "case_id": "case_07_career_changer_on_backend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.5595,
+      "must_haves_satisfied": false,
+      "missing_skills_count": 4,
+      "recommendations_count": 4
+    },
+    {
+      "case_id": "case_08_related_skills_on_backend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.5274,
+      "must_haves_satisfied": false,
+      "missing_skills_count": 4,
+      "recommendations_count": 4
+    },
+    {
+      "case_id": "case_09_sparse_resume_on_backend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.3534,
+      "must_haves_satisfied": false,
+      "missing_skills_count": 4,
+      "recommendations_count": 6
+    },
+    {
+      "case_id": "case_10_ambiguous_formatting_on_backend_job",
+      "passed": true,
+      "errors": [],
+      "candidate_fit_score": 0.6987,
+      "must_haves_satisfied": false,
+      "missing_skills_count": 2,
+      "recommendations_count": 2
+    }
+  ]
+}

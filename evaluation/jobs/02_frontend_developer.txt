@@ -1,0 +1,23 @@
+Job Title: Senior Frontend Developer
+Department: User Experience Engineering
+Location: San Francisco, CA / Remote
+
+About the Role:
+We are seeking a Senior Frontend Developer to lead UI engineering for our modern web applications.
+
+Responsibilities:
+- Build modular, reusable, and accessible web components.
+- Optimize web bundle sizes, Core Web Vitals, and runtime rendering performance.
+- Partner with product design to translate Figma specs into clean, responsive interfaces.
+
+Must-Have Requirements:
+- Minimum 3+ years of professional web application engineering with JavaScript (or JS / modern ECMAScript).
+- Minimum 3+ years of hands-on experience building single-page applications with React.
+- Strong proficiency in TypeScript for type-safe frontend architecture.
+- Minimum 3.0 years of frontend web development experience.
+- Bachelor's degree in Computer Science or Software Engineering.
+
+Nice-to-Have Requirements:
+- Experience with Tailwind CSS utility-first styling.
+- Experience with Next.js App Router for server-rendered React applications.
+- Experience writing unit tests with Jest or Vitest.

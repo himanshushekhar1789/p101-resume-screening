@@ -13,11 +13,11 @@ JD_SECTION_PATTERNS: Dict[str, re.Pattern] = {
         re.I,
     ),
     "mandatory_requirements": re.compile(
-        r"^(?:required(?:\s+qualifications|\s+skills|\s+experience)?|requirements|basic\s+qualifications|minimum\s+qualifications|must\s+have|what\s+you\s+need|mandatory\s+requirements|qualifications)(?:\s*:)?$",
+        r"^(?:required(?:\s+qualifications|\s+skills|\s+experience)?|requirements|basic\s+qualifications|minimum\s+qualifications|must\s*[-–]?\s*have(?:\s+requirements)?|what\s+you\s+need|mandatory\s+requirements|qualifications)(?:\s*:)?$",
         re.I,
     ),
     "preferred_requirements": re.compile(
-        r"^(?:preferred(?:\s+qualifications|\s+skills|\s+experience)?|nice\s+to\s+have|nice-to-have|good\s+to\s+have|bonus(?:\s+points)?|desired(?:\s+qualifications)?|what\s+gives\s+you\s+an\s+edge|additional\s+qualifications)(?:\s*:)?$",
+        r"^(?:preferred(?:\s+qualifications|\s+skills|\s+experience)?|nice\s*[-–]?\s*to\s*[-–]?\s*have(?:\s+requirements)?|good\s+to\s+have|bonus(?:\s+points)?|desired(?:\s+qualifications)?|what\s+gives\s+you\s+an\s+edge|additional\s+qualifications)(?:\s*:)?$",
         re.I,
     ),
     "education": re.compile(

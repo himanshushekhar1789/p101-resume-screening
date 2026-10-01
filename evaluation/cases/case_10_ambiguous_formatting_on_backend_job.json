@@ -1,0 +1,32 @@
+{
+  "case_id": "case_10_ambiguous_formatting_on_backend_job",
+  "description": "Candidate with unconventional section headers and mixed casing evaluated against Senior Backend JD to test normalization robustness.",
+  "resume_file": "10_ambiguous_formatting.txt",
+  "job_file": "01_backend_engineer.txt",
+  "candidate_profile_type": "robustness_test",
+  "expected": {
+    "normalization_tests": {
+      "PYTHON": "Python",
+      "FastApi": "FastAPI",
+      "pOsTgReS": "PostgreSQL",
+      "DoCkEr": "Docker"
+    },
+    "skills": {
+      "Python": {
+        "expected_status": "satisfied"
+      },
+      "FastAPI": {
+        "expected_status": "satisfied"
+      },
+      "PostgreSQL": {
+        "expected_status": "satisfied"
+      }
+    },
+    "scoring_invariants": {
+      "rule_fit_min": 0.70
+    },
+    "llm_grounding": {
+      "forbid_hiring_decisions": true
+    }
+  }
+}

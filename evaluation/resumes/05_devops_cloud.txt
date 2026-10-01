@@ -1,0 +1,36 @@
+Elena Rostova
+Email: elena.rostova@synthetic-domain.com | Phone: (555) 678-9012
+Location: Chicago, IL
+
+SUMMARY
+DevOps and Cloud Infrastructure Engineer with over 5 years of experience deploying and managing containerized distributed systems across AWS and Kubernetes. Specialist in Terraform Infrastructure as Code and automated CI/CD pipelines.
+
+TECHNICAL SKILLS
+- Cloud Platforms: AWS (EKS, EC2, S3, IAM, CloudWatch)
+- Container Orchestration: Kubernetes, Docker, Helm, Docker Compose
+- Infrastructure as Code: Terraform, Ansible
+- CI/CD & Automation: GitHub Actions, Jenkins, Bash, Python
+- Operating Systems & Networking: Linux (Ubuntu, RHEL), TCP/IP, DNS, SSL/TLS
+
+EXPERIENCE
+
+Senior DevOps Engineer | CloudBridge Technologies
+August 2021 – Present (3.1 years)
+- Managed production multi-cluster Kubernetes deployments on AWS EKS supporting 200+ microservices.
+- Provisioned cloud infrastructure across multiple AWS accounts using Terraform modules and state locking.
+- Standardized container images using Docker multi-stage builds and vulnerability scanning.
+- Designed zero-downtime rolling update CI/CD pipelines with GitHub Actions and Helm.
+
+Cloud Infrastructure Engineer | FinSys Systems
+May 2019 – July 2021 (2.2 years)
+- Built Docker container deployment workflows and maintained Kubernetes dev/staging clusters.
+- Automated AWS resource provisioning via Terraform and Python automation scripts.
+- Administered Linux server fleet and monitored latency metrics via Prometheus and Grafana.
+
+CERTIFICATIONS
+- AWS Certified Solutions Architect – Professional (2022)
+- Certified Kubernetes Administrator (CKA) (2021)
+
+EDUCATION
+Bachelor of Science in Information Technology
+Illinois Institute of Technology | 2019
