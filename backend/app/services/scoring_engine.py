@@ -236,10 +236,15 @@ class ScoringEngine:
     ) -> ScoreComponent:
         """
         Calculates priority-weighted average of raw cosine similarity scores from Phase 7.
+        - Evaluates applicable non-experience semantic requirements (skills, education,
+          certifications, other).
+        - Experience requirements (category == 'experience' or id starting with 'exp_')
+          are strictly excluded from numerical Semantic Fit to prevent double-counting
+          with Experience Fit.
         - must_have weight: 1.0
         - nice_to_have weight: 0.5
         - Uses raw similarity (clipped to [0.0, 1.0]).
-        - If no semantic results exist or all are not_evaluable, marked available=False.
+        - If no semantic results exist or all are not_evaluable/experience, marked available=False.
         """
         # Pool all available semantic results from matches or direct list
         results_map: Dict[str, SemanticMatchResult] = {}
@@ -270,6 +275,12 @@ class ScoringEngine:
         not_evaluable_count = 0
 
         for r in results_map.values():
+            # ARCHITECTURAL RULE (Phase 8.2):
+            # Exclude experience requirements from the numerical Semantic Fit calculation.
+            # Career tenure and skill duration are evaluated exclusively by Experience Fit.
+            if r.category == "experience" or r.requirement_id.startswith("exp_"):
+                continue
+
             if r.semantic_status == SemanticStatus.SEMANTIC_NOT_EVALUABLE:
                 not_evaluable_count += 1
                 continue
@@ -290,13 +301,13 @@ class ScoringEngine:
             score = round(min(1.0, max(0.0, raw_score)), 4)
             available = True
             explanation = (
-                f"Semantic fit evaluated {evaluable_count} requirements using dense vector similarity "
+                f"Semantic fit evaluated {evaluable_count} non-experience requirement(s) using dense vector similarity "
                 f"yielding an average weighted similarity of {score:.2f} ({not_evaluable_count} not evaluable)."
             )
         else:
             score = None
             available = False
-            explanation = "No semantically evaluable requirements available."
+            explanation = "No semantically evaluable non-experience requirements available."
 
         return ScoreComponent(
             name="semantic_fit",

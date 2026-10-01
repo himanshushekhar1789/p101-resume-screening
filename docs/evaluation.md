@@ -305,6 +305,7 @@ The test suite validates semantic matching across 14 dedicated test cases:
 Phase 8 combines deterministic requirement verification, semantic similarity, verifiable experience duration, and optional LLM fit into a calibrated, explainable Candidate Fit Score:
 - **Canonical Range**: All component scores and the aggregate candidate fit score strictly reside in $[0.0, 1.0]$ (represented also as percentage $0.0\text{--}100.0\%$).
 - **Rule Fit vs Experience Fit Separation**: Rule Fit strictly evaluates evaluable **non-experience deterministic requirements** ($\mathcal{R}_{\text{rule}}$: skills, education, certifications, and explicit constraints). Experience requirements ($\mathcal{R}_{\text{exp}}$) are intentionally excluded from Rule Fit and evaluated exclusively by Experience Fit to prevent double-counting.
+- **Semantic Fit vs Experience Fit Separation (Phase 8.2)**: Semantic Fit strictly evaluates evaluable **non-experience semantic requirements** ($\mathcal{R}_{\text{rule}}$). Career experience and role tenure requirements (`category == "experience"` or `requirement_id` starting with `exp_`) are excluded from numerical Semantic Fit to prevent career tenure from being counted twice (via cosine similarity and tenure ratio). Full semantic match evidence for experience items remains preserved for recruiter diagnostics.
 - **Priority-Weighted Rule Fit**: Evaluates deterministic satisfaction over $\mathcal{R}_{\text{rule}}$ where `must_have` requirements carry weight $1.0$ and `nice_to_have` requirements carry weight $0.5$.
 - **Not-Evaluable Safeguard**: Incomplete evidence (`not_evaluable`) is excluded from denominators rather than treated as a punitive failure ($0.0$).
 - **Proportional Experience Capping**: Explicit tenure duration calculates $\min(1.0, \text{candidate\_years} / \text{required\_years})$; excess experience is strictly capped at $1.0$.
@@ -313,7 +314,7 @@ Phase 8 combines deterministic requirement verification, semantic similarity, ve
 
 ### 10.2 Phase 8 Test Matrix (`backend/tests/test_scoring_engine.py`)
 
-The test suite validates scoring engine integrity across 20 dedicated test cases:
+The test suite validates scoring engine integrity across 24 dedicated test cases:
 
 | Test Case | Scope | Scenario | Expected Outcome |
 |---|---|---|---|
@@ -334,6 +335,10 @@ The test suite validates scoring engine integrity across 20 dedicated test cases
 | `test_configurable_weights_sanity` | Configurability | Changing weights from semantic-heavy to rule-heavy | Score changes predictably reflecting user preferences |
 | `test_five_synthetic_score_benchmarks` | Benchmarking | Evaluates 5 synthetic candidate archetypes | Accurate distribution of scores across archetypes |
 | `test_rule_fit_and_experience_fit_separation` | Phase 8.1 Regression | Verifies rule_fit invariant under changing experience tenure | `rule_fit` unchanged when experience drops; `exp_fit` drops proportionally; exp-only job produces no artificial rule_fit |
+| `test_career_experience_excluded_from_semantic_fit` | Phase 8.2 Regression | Experience requirement has semantic result attached | Numerical `semantic_fit` reflects non-experience skills only ($0.9000$ vs $(0.90 + 0.85)/2$); `exp_fit = 1.0` |
+| `test_semantic_fit_invariant_under_experience_similarity` | Phase 8.2 Regression | Experience semantic similarity varied ($0.95$ vs $0.20$) with identical skills | `semantic_fit_score` and `candidate_fit_score` remain completely invariant ($0.8000$) |
+| `test_skill_specific_experience_semantic_scoring` | Phase 8.2 Regression | Skill-specific tenure ("3+ years Python") | Skill credits `semantic_fit` ($0.92$); experience credits `exp_fit` ($1.0$); exp-only job marks semantic fit unavailable |
+| `test_phase7_semantic_results_remain_available_in_diagnostic_response` | Phase 8.2 Regression | Diagnostic inspection of matches and summary | All Phase 7 semantic results fully present in response while excluded from numerical score |
 | `test_api_scoring_analyze_endpoint` | REST API | `POST /api/v1/scoring/analyze` with profiles | HTTP 200 with `CandidateJobScoreResponse` schema |
 | `test_api_matching_analyze_with_include_score` | REST API | `POST /api/v1/matching/analyze` with `include_score=True` | HTTP 200 with populated `score` object |
 | `test_api_matching_from_files_with_include_score` | REST API | `POST /api/v1/matching/from-files` with `include_score=True` | HTTP 200 with end-to-end PDF parsing and score calculation |

@@ -502,11 +502,14 @@ LLM Fit        → Optional qualitative assessment (disabled by default)
    - If $\mathcal{R}_{\text{rule}} = \emptyset$ (e.g. a job posting specifying only tenure requirements), Rule Fit is marked `available = False` ($S_{\text{rule}} = \text{None}$) and its weight is dynamically renormalized to prevent an experience requirement alone from artificially producing a Rule Fit score.
 
 2. **Semantic Fit ($S_{\text{semantic}}$)**:
-   - Aggregates raw cosine similarities from Phase 7 without recomputing embeddings.
-   - Uses continuous similarity scores $\in [0.0, 1.0]$ rather than binary categories.
-   - Priority-weighted across semantically evaluable requirements (`must_have` $1.0$, `nice_to_have` $0.5$).
+   - Aggregates raw cosine similarities from Phase 7 for **non-experience requirements** ($\mathcal{R}_{\text{rule}}$ semantic items: skills, education, certifications, and explicit domain knowledge).
+   - **Exclusion of Experience Requirements (Phase 8.2)**: Career experience and role tenure items (`category == "experience"` or `requirement_id` starting with `exp_`) are strictly excluded from the numerical Semantic Fit calculation. This prevents double-counting, ensuring career tenure is evaluated exclusively through the quantitative Experience Fit component.
+   - **Diagnostic Evidence Preserved**: While excluded from the numerical score fusion, all Phase 7 semantic match results for experience requirements remain fully intact within `SingleRequirementMatch.semantic_result` and `CandidateJobMatchResponse.semantic_matches` for recruiter inspection and qualitative explainability.
+   - Continuous similarity scores $\in [0.0, 1.0]$ rather than binary categories.
+   - Priority-weighted across semantically evaluable non-experience requirements (`must_have` $1.0$, `nice_to_have` $0.5$):
+     $$S_{\text{semantic}} = \frac{\sum_{r \in \mathcal{R}_{\text{rule, sem}}} (\text{similarity}_r \times \text{priority\_weight}_r)}{\sum_{r \in \mathcal{R}_{\text{rule, sem}}} \text{priority\_weight}_r}$$
    - Respects false-positive protection matrix (forced $0.0$ similarity for incompatible domains such as Java vs JavaScript).
-   - If semantic matching is disabled or candidate provides no evaluable text, marked `available = False` and dynamically renormalized.
+   - If semantic matching is disabled, candidate provides no evaluable text, or the job contains only experience requirements ($\mathcal{R}_{\text{rule, sem}} = \emptyset$), Semantic Fit is marked `available = False` ($S_{\text{semantic}} = \text{None}$) and its weight is dynamically renormalized.
 
 3. **Experience Fit ($S_{\text{experience}}$)**:
    - Evaluates verifiable non-overlapping career and skill tenure strictly from Phase 6 evidence over $\mathcal{R}_{\text{exp}}$.

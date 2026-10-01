@@ -396,6 +396,8 @@ Evaluates candidate background against job requirements using dense vector embed
 
 ## 7. Hybrid Fusion Scoring Engine (Phase 8)
 
+> **Phase 8.2 Architectural Rule**: Experience requirements (`category == "experience"` or `requirement_id.startswith("exp_")`) are strictly excluded from the numerical `semantic_fit` score to prevent double-counting with `experience_fit`. However, all Phase 7 semantic match results for experience requirements remain fully preserved in `semantic_matches` and `SingleRequirementMatch.semantic_result` for recruiter diagnostics and explanations.
+
 ### `POST /scoring/analyze`
 Computes an explainable, multi-layer hybrid candidate-fit score combining deterministic rule fit, semantic similarity, verifiable experience, and optional LLM fit.
 
@@ -449,7 +451,7 @@ Computes an explainable, multi-layer hybrid candidate-fit score combining determ
       "effective_weight": 0.4444,
       "weighted_contribution": 0.3489,
       "available": true,
-      "explanation": "Semantic fit evaluated 6 requirements using dense vector similarity yielding an average weighted similarity of 0.79 (0 not evaluable).",
+      "explanation": "Semantic fit evaluated 6 non-experience requirement(s) using dense vector similarity yielding an average weighted similarity of 0.79 (0 not evaluable).",
       "evaluable_count": 6,
       "not_evaluable_count": 0
     },

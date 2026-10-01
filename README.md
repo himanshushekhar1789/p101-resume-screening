@@ -508,7 +508,7 @@ Phase 8 introduces an explainable, configurable **Multi-Layer Hybrid Fusion Scor
      - `partial` $\rightarrow$ 0.5
      - `unmatched` $\rightarrow$ 0.0
      - `not_evaluable` $\rightarrow$ Excluded from both numerator and denominator.
-  2. **`semantic_fit`**: Priority-weighted average of continuous raw cosine similarity scores ($[0.0, 1.0]$) across semantically evaluable requirements from Phase 7 (`must_have` = 1.0, `nice_to_have` = 0.5).
+  2. **`semantic_fit`**: Priority-weighted average of continuous raw cosine similarity scores ($[0.0, 1.0]$) across semantically evaluable **non-experience requirements** from Phase 7 (`must_have` = 1.0, `nice_to_have` = 0.5). Career experience and role tenure requirements (`category == "experience"` or `exp_*`) are strictly excluded to prevent double-counting with `experience_fit`, while remaining fully preserved in diagnostic evidence.
   3. **`experience_fit`**: Proportional career tenure ratio over $\mathcal{R}_{\text{exp}}$ ($\min(\text{candidate\_years} / \text{required\_years}, 1.0)$), capped strictly at 1.0 to prevent unfairly rewarding overqualified candidates; excluded when no experience requirements exist.
   4. **`llm_fit`**: Qualitative evaluation placeholder (defaults to `None` / `available = False` for deterministic, zero-cost execution).
 - **Default Fusion Weights**:

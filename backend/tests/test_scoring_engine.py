@@ -18,7 +18,12 @@ Validates:
 14. No hiring decision fields in output
 15. Configurable weights sanity test (changing weights changes score)
 16. Five synthetic candidate benchmark archetypes
-17. REST API endpoints (/scoring/analyze, /matching/analyze?include_score=true, /matching/from-files?include_score=true)
+17. Rule Fit & Experience Fit separation (Phase 8.1 regression)
+18. Career experience excluded from numerical semantic fit (Phase 8.2 regression)
+19. Semantic fit invariant under experience similarity (Phase 8.2 regression)
+20. Skill-specific experience semantic scoring (Phase 8.2 regression)
+21. Phase 7 semantic diagnostic preservation (Phase 8.2 regression)
+22. REST API endpoints (/scoring/analyze, /matching/analyze?include_score=true, /matching/from-files?include_score=true)
 """
 
 import pytest
@@ -634,7 +639,204 @@ def test_rule_fit_and_experience_fit_separation(scoring_engine):
 
 
 # ---------------------------------------------------------------------------
-# Test 18 — REST API Endpoints
+# Test 18 — Career Experience Excluded from Numerical Semantic Fit (Phase 8.2)
+# ---------------------------------------------------------------------------
+def test_career_experience_excluded_from_semantic_fit(scoring_engine):
+    """
+    Regression Test 1 for Phase 8.2:
+    Career experience requirements (category == 'experience' or id 'exp_*') must be
+    excluded from the numerical semantic_fit calculation:
+    - Candidate matches Python (skill, must_have, semantic_sim=0.90).
+    - Candidate matches Experience (experience, must_have, min_years=5.0, cand_years=5.0, semantic_sim=0.85).
+    - If experience were included: semantic_fit would be (0.90 + 0.85) / 2 = 0.8750.
+    - Because experience is excluded: semantic_fit must be exactly 0.9000.
+    - experience_fit is calculated independently from tenure: 5.0 / 5.0 = 1.0.
+    """
+    matches = [
+        make_mock_match("Python", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.90),
+        make_mock_match("Experience", "experience", "must_have", MatchStatus.MATCHED, minimum_years=5.0, candidate_years=5.0, semantic_sim=0.85),
+    ]
+    resp = CandidateJobMatchResponse(
+        matches=matches,
+        summary=MatchingSummary(total_requirements=2, matched=2, must_have_total=2, must_have_matched=2),
+    )
+
+    score_res = scoring_engine.compute_score(resp)
+
+    # Invariant: semantic_fit reflects ONLY the non-experience skill requirement (0.9000)
+    assert score_res.semantic_fit_score == 0.9000
+    assert score_res.experience_fit_score == 1.0
+    assert score_res.rule_fit_score == 1.0
+    assert "evaluated 1 non-experience requirement(s)" in score_res.components.semantic_fit.explanation
+
+
+# ---------------------------------------------------------------------------
+# Test 19 — Semantic Fit Invariant Under Experience Similarity (Phase 8.2)
+# ---------------------------------------------------------------------------
+def test_semantic_fit_invariant_under_experience_similarity(scoring_engine):
+    """
+    Regression Test 2 for Phase 8.2:
+    Semantic fit must be invariant under changes in experience semantic similarity:
+    - Candidate A has high experience semantic similarity (0.95).
+    - Candidate B has low experience semantic similarity (0.20).
+    - Both have identical skills (Python, semantic_sim=0.80) and identical tenure (5.0 / 5.0 yrs).
+    - Both candidates must produce identical semantic_fit_score and candidate_fit_score.
+    """
+    matches_a = [
+        make_mock_match("Python", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.80),
+        make_mock_match("Experience", "experience", "must_have", MatchStatus.MATCHED, minimum_years=5.0, candidate_years=5.0, semantic_sim=0.95),
+    ]
+    resp_a = CandidateJobMatchResponse(
+        matches=matches_a,
+        summary=MatchingSummary(total_requirements=2, matched=2, must_have_total=2, must_have_matched=2),
+    )
+    score_a = scoring_engine.compute_score(resp_a)
+
+    matches_b = [
+        make_mock_match("Python", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.80),
+        make_mock_match("Experience", "experience", "must_have", MatchStatus.MATCHED, minimum_years=5.0, candidate_years=5.0, semantic_sim=0.20),
+    ]
+    resp_b = CandidateJobMatchResponse(
+        matches=matches_b,
+        summary=MatchingSummary(total_requirements=2, matched=2, must_have_total=2, must_have_matched=2),
+    )
+    score_b = scoring_engine.compute_score(resp_b)
+
+    # Invariants:
+    assert score_a.semantic_fit_score == 0.8000
+    assert score_b.semantic_fit_score == 0.8000
+    assert score_a.semantic_fit_score == score_b.semantic_fit_score
+    assert score_a.candidate_fit_score == score_b.candidate_fit_score
+    assert score_a.experience_fit_score == score_b.experience_fit_score == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Test 20 — Skill-Specific Experience Semantic Scoring (Phase 8.2)
+# ---------------------------------------------------------------------------
+def test_skill_specific_experience_semantic_scoring(scoring_engine):
+    """
+    Regression Test 3 for Phase 8.2:
+    Handling of skill-specific experience (e.g. '3+ years of Python experience'):
+    - Skill requirement ('Python') contributes to rule_fit and semantic_fit.
+    - Experience requirement ('3+ years of Python experience', category='experience', id='exp_python')
+      contributes to experience_fit.
+    - The experience semantic item adds NO duplicate contribution to semantic_fit.
+    - If a job has ONLY experience requirements, semantic_fit is marked available=False.
+    """
+    matches = [
+        make_mock_match("Python", "skill", "must_have", MatchStatus.MATCHED, semantic_sim=0.92),
+        make_mock_match("3+ years of Python", "experience", "must_have", MatchStatus.MATCHED, minimum_years=3.0, candidate_years=3.0, semantic_sim=0.88),
+    ]
+    resp = CandidateJobMatchResponse(
+        matches=matches,
+        summary=MatchingSummary(total_requirements=2, matched=2, must_have_total=2, must_have_matched=2),
+    )
+    score_res = scoring_engine.compute_score(resp)
+
+    # Only the skill requirement (0.92) is counted in semantic_fit
+    assert score_res.semantic_fit_score == 0.9200
+    assert score_res.rule_fit_score == 1.0
+    assert score_res.experience_fit_score == 1.0
+
+    # Job with ONLY experience semantic items (e.g. category='experience' or 'exp_*')
+    matches_exp_only = [
+        make_mock_match("Senior Tenure", "experience", "must_have", MatchStatus.MATCHED, minimum_years=5.0, candidate_years=5.0, semantic_sim=0.90),
+    ]
+    resp_exp_only = CandidateJobMatchResponse(
+        matches=matches_exp_only,
+        summary=MatchingSummary(total_requirements=1, matched=1, must_have_total=1, must_have_matched=1),
+    )
+    score_exp_only = scoring_engine.compute_score(resp_exp_only)
+
+    # Invariant: semantic_fit is unavailable because no non-experience semantic requirements exist
+    assert score_exp_only.components.semantic_fit.available is False
+    assert score_exp_only.semantic_fit_score is None
+    assert score_exp_only.components.semantic_fit.effective_weight == 0.0
+    assert "No semantically evaluable non-experience requirements available" in score_exp_only.components.semantic_fit.explanation
+    # Remaining component (experience_fit) carries 100% of the effective weight
+    assert score_exp_only.experience_fit_score == 1.0
+    assert score_exp_only.candidate_fit_score == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Test 21 — Phase 7 Semantic Results Remain Available in Diagnostic Response (Phase 8.2)
+# ---------------------------------------------------------------------------
+def test_phase7_semantic_results_remain_available_in_diagnostic_response(scoring_engine):
+    """
+    Regression Test 4 for Phase 8.2:
+    Existing Phase 7 semantic results must remain fully available in the diagnostic
+    response structure (SingleRequirementMatch.semantic_result and CandidateJobMatchResponse.semantic_matches),
+    even while excluded from the numerical semantic_fit score.
+    """
+    exp_sem_res = SemanticMatchResult(
+        requirement_id="exp_backend_tenure",
+        requirement_text="5+ years backend experience",
+        category="experience",
+        priority="must_have",
+        similarity=0.87,
+        semantic_status=SemanticStatus.SEMANTIC_MATCH,
+        candidate_evidence="6 years backend development at Acme Corp",
+        candidate_source="experience",
+        candidate_text="Senior Backend Engineer 2018-2024",
+        explanation="High semantic similarity on backend role text",
+    )
+    skill_sem_res = SemanticMatchResult(
+        requirement_id="skill_python",
+        requirement_text="Python",
+        category="skill",
+        priority="must_have",
+        similarity=0.95,
+        semantic_status=SemanticStatus.SEMANTIC_MATCH,
+        candidate_evidence="Python, FastAPI, Django listed in skills",
+        candidate_source="skills",
+        candidate_text="Python",
+        explanation="Direct semantic match on programming language",
+    )
+
+    matches = [
+        SingleRequirementMatch(
+            requirement=RequirementReference(name="Python", type="skill", priority="must_have"),
+            status=MatchStatus.MATCHED,
+            match_method=MatchMethod.CANONICAL_EXACT,
+            candidate_evidence=["Python"],
+            requirement_evidence=["Python"],
+            reason="Matched canonical skill Python",
+            semantic_result=skill_sem_res,
+        ),
+        SingleRequirementMatch(
+            requirement=RequirementReference(name="5+ years backend", type="experience", priority="must_have", minimum_years=5.0),
+            status=MatchStatus.MATCHED,
+            match_method=MatchMethod.EXPERIENCE_VERIFIED,
+            candidate_evidence=["6.0 years tenure"],
+            requirement_evidence=["5+ years"],
+            reason="Candidate has 6.0 years experience",
+            semantic_result=exp_sem_res,
+        ),
+    ]
+
+    resp = CandidateJobMatchResponse(
+        matches=matches,
+        summary=MatchingSummary(total_requirements=2, matched=2, must_have_total=2, must_have_matched=2),
+        semantic_matches=[skill_sem_res, exp_sem_res],
+    )
+
+    # 1. Diagnostic preservation verification
+    assert len(resp.semantic_matches) == 2
+    assert resp.matches[1].semantic_result is not None
+    assert resp.matches[1].semantic_result.requirement_id == "exp_backend_tenure"
+    assert resp.matches[1].semantic_result.similarity == 0.87
+    assert resp.matches[1].semantic_result.category == "experience"
+    assert resp.matches[1].semantic_result.candidate_evidence == "6 years backend development at Acme Corp"
+
+    # 2. Scoring verification: numerical score excludes the experience semantic result
+    score_res = scoring_engine.compute_score(resp)
+    assert score_res.semantic_fit_score == 0.9500  # Strictly skill similarity, NOT (0.95 + 0.87) / 2 = 0.9100
+    assert score_res.experience_fit_score == 1.0
+    assert score_res.rule_fit_score == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Test 22 — REST API Endpoints
 # ---------------------------------------------------------------------------
 def test_api_scoring_analyze_endpoint(client):
     """
