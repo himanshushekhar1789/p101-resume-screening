@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P_101 — Project Presentation: LLM-Based Resume Screening System</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Presentation Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+    }
+    .logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    .logo-badge span {
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      color: white;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background-color: #273549;
+      border-color: var(--accent);
+    }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-light);
+    }
+    /* Progress Bar */
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background-color: var(--bg-card);
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      width: 6.66%;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* Slide Container */
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      position: relative;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1100px;
+      height: 82vh;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      flex-direction: column;
+      overflow-y: auto;
+      animation: fadeIn 0.25s ease-out;
+    }
+    .slide.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-header {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .slide-title-group h2 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+    .slide-title-group p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    .slide-num {
+      background-color: rgba(99, 102, 241, 0.15);
+      color: var(--accent-light);
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+    .slide-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    /* Grids & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .card {
+      background-color: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent-light);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card p, .card li {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .card ul {
+      margin-left: 18px;
+      margin-top: 6px;
+    }
+    .card li {
+      margin-bottom: 4px;
+    }
+    /* Highlight Cards */
+    .metric-card {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.1));
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      text-align: center;
+      padding: 20px 10px;
+      border-radius: 12px;
+    }
+    .metric-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+    }
+    .metric-label {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    /* Comparison Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      text-align: left;
+    }
+    th, td {
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+    }
+    th {
+      background-color: #1a2234;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-red { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .badge-blue { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+    /* Pre / Code */
+    pre {
+      background-color: #0b1120;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      overflow-x: auto;
+      line-height: 1.4;
+    }
+    /* Speaker Notes Drawer */
+    .speaker-notes-drawer {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #020617;
+      border-top: 2px solid var(--accent);
+      padding: 16px 24px;
+      max-height: 25vh;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+    }
+    .speaker-notes-drawer.open {
+      display: block;
+    }
+    .speaker-notes-drawer h4 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-light);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .speaker-notes-content {
+      font-size: 0.95rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+    /* Key Help Modal */
+    .banner {
+      background: rgba(99, 102, 241, 0.12);
+      border-left: 4px solid var(--accent);
+      padding: 10px 16px;
+      border-radius: 0 6px 6px 0;
+      font-size: 0.85rem;
+      color: #e0e7ff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-badge">
+      <span>P_101</span> LLM-Based Resume Screening System
+    </div>
+    <div class="nav-controls">
+      <button class="btn" onclick="prevSlide()" title="Previous Slide (← / Up)">◀ Previous</button>
+      <button class="btn" onclick="nextSlide()" title="Next Slide (→ / Down / Space)">Next ▶</button>
+      <button class="btn" onclick="toggleNotes()" id="notesBtn" title="Toggle Speaker Notes (N)">🎙️ Notes</button>
+      <button class="btn" onclick="toggleFullScreen()" title="Toggle Fullscreen (F)">⛶ Fullscreen</button>
+      <a href="http://localhost:3000" target="_blank" class="btn btn-primary" title="Launch Local Web App">🚀 Launch App</a>
+    </div>
+  </header>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Slides -->
+  <main>
+
+    <!-- Slide 1: Title -->
+    <div class="slide active" id="slide-1">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>P_101 — LLM-Based Resume Screening System</h2>
+          <p>An Evidence-Grounded Recruiter Decision-Support Platform with Deterministic & Semantic Matching</p>
+        </div>
+        <div class="slide-num">01 / 15</div>
+      </div>
+      <div class="slide-content" style="justify-content: center; align-items: center; text-align: center;">
+        <div style="max-width: 750px; padding: 30px; background: rgba(15,23,42,0.8); border: 1px solid var(--border-color); border-radius: 16px;">
+          <h1 style="font-size: 2.4rem; font-weight: 800; background: linear-gradient(135deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            P_101 Resume Screening
+          </h1>
+          <p style="font-size: 1.15rem; color: var(--accent-light); margin-top: 10px; font-weight: 500;">
+            Multi-Layer Hybrid Scoring • Evidence Grounding • Skill-Gap Auditing
+          </p>
+          <div style="margin: 30px 0; height: 1px; background: var(--border-color);"></div>
+          <div class="grid-2" style="text-align: left; font-size: 0.9rem;">
+            <div>
+              <p><strong>Branch / Degree:</strong> B.Tech — Computer Science & Engg.</p>
+              <p><strong>Department:</strong> Computer Science & Engineering</p>
+            </div>
+            <div>
+              <p><strong>Academic Year:</strong> 2025 – 2026</p>
+              <p><strong>Core Stance:</strong> Decision Support, Not Automated Hiring</p>
+            </div>
+          </div>
+          <div class="banner" style="margin-top: 24px; text-align: left;">
+            💡 <strong>Presentation Tip:</strong> Use <strong>Arrow Keys</strong> or <strong>Spacebar</strong> to navigate. Press <strong>N</strong> to toggle speaker notes.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Problem Statement -->
+    <div class="slide" id="slide-2">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Problem Statement & Recruitment Bottleneck</h2>
+          <p>Why modern automated screening systems fail recruiters and candidates alike</p>
+        </div>
+        <div class="slide-num">02 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card">
+            <h3>📉 Recruiter Cognitive Fatigue</h3>
+            <p>High-volume applicant pools force recruiters to skim resumes in under 10 seconds. Manual evaluation suffers from inconsistency, fatigue, and subjective cognitive bias.</p>
+          </div>
+          <div class="card">
+            <h3>🔍 Lexical Phrasing Discrepancy</h3>
+            <p>Candidates express skills with acronyms and synonyms (e.g. <code>JS</code> vs <code>JavaScript</code>, <code>Postgres</code> vs <code>PostgreSQL</code>, <code>K8s</code> vs <code>Kubernetes</code>). Keyword tools miss qualified talent.</p>
+          </div>
+          <div class="card">
+            <h3>⚠️ Black-Box AI Hallucinations</h3>
+            <p>Direct generative AI prompting ("Rate this candidate 1-10") produces unexplainable scores, hallucinates unmentioned credentials, and is vulnerable to hidden prompt injections.</p>
+          </div>
+        </div>
+        <div class="card" style="border-left: 4px solid var(--accent); margin-top: 10px;">
+          <h3 style="color: var(--accent-light);">🎯 Central Project Requirement</h3>
+          <p style="font-size: 1.05rem; color: #f1f5f9; margin-top: 6px;">
+            "To design and build an auditable, transparent first-pass screening system that extracts structured profiles, proves every requirement match with verbatim textual citations, and keeps final hiring authority strictly with human recruiters."
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Objectives -->
+    <div class="slide" id="slide-3">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>10 Core Engineering Objectives</h2>
+          <p>Verifiable milestones accomplished across the system lifecycle</p>
+        </div>
+        <div class="slide-num">03 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <h3>1. Structured Resume Parsing</h3>
+            <p>Ingest PDF/DOCX with PyMuPDF block sorting, preserving natural reading order across multi-column layouts.</p>
+          </div>
+          <div class="card">
+            <h3>2. Structured Job Description Analysis</h3>
+            <p>Classify job requirements into Must-Have (mandatory) vs Nice-to-Have (preferred) across skills and tenure.</p>
+          </div>
+          <div class="card">
+            <h3>3. Canonical Skill Normalization</h3>
+            <p>Resolve aliases (<code>k8s → Kubernetes</code>) while protecting distinct technologies (<code>Java ≠ JS</code>, <code>C ≠ C++</code>).</p>
+          </div>
+          <div class="card">
+            <h3>4. Deterministic Requirement Matching</h3>
+            <p>Authoritative mathematical rule engine evaluating skills, degrees, and tenure with zero hallucination.</p>
+          </div>
+          <div class="card">
+            <h3>5. Dense Semantic Matching</h3>
+            <p>Local <code>sentence-transformers</code> embeddings capturing conceptual context without overriding hard rules.</p>
+          </div>
+          <div class="card">
+            <h3>6. Multi-Factor Hybrid Scoring</h3>
+            <p>Orthogonal fusion: Rule Fit (30%), Semantic Fit (40%), Experience Fit (20%), and LLM-Supported Fit (10%).</p>
+          </div>
+          <div class="card">
+            <h3>7. Evidence-Grounded Skill Gaps</h3>
+            <p>Categorize gaps into satisfied, missing, and insufficient with verbatim resume sentence citations.</p>
+          </div>
+          <div class="card">
+            <h3>8. Constrained LLM Explanations</h3>
+            <p>Grounded natural language briefing with strict guardrails: zero automated hiring verdicts or speculations.</p>
+          </div>
+          <div class="card">
+            <h3>9. Recruiter Web Dashboard</h3>
+            <p>Next.js 16 / React 19 interface providing audit tables, score breakdown grids, and human review notices.</p>
+          </div>
+          <div class="card">
+            <h3>10. Human-in-the-Loop Decision Support</h3>
+            <p>Assistive audit tool; zero candidate ranking, zero leaderboards, and zero automated rejection decisions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Comparison -->
+    <div class="slide" id="slide-4">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Existing vs. Proposed Screening Model</h2>
+          <p>Decoupling deterministic mathematical truth from language model summarization</p>
+        </div>
+        <div class="slide-num">04 / 15</div>
+      </div>
+      <div class="slide-content">
+        <table>
+          <thead>
+            <tr>
+              <th>Evaluation Dimension</th>
+              <th>Manual Screening</th>
+              <th>Keyword ATS</th>
+              <th>Monolithic LLM Prompt</th>
+              <th style="color: var(--accent-light);">P_101 Platform</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Screening Throughput</strong></td>
+              <td>Very Low (&lt;10/hr)</td>
+              <td>Instantaneous</td>
+              <td>Variable / Costly</td>
+              <td><span class="badge badge-green">High (Median 72ms)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Synonym / Alias Handling</strong></td>
+              <td>Subjective</td>
+              <td><span class="badge badge-red">Fails "JS" / "K8s"</span></td>
+              <td>Good, but unpredictable</td>
+              <td><span class="badge badge-green">100% Canonical Taxonomy</span></td>
+            </tr>
+            <tr>
+              <td><strong>Context Awareness</strong></td>
+              <td>High</td>
+              <td>Zero</td>
+              <td>High</td>
+              <td><span class="badge badge-green">Dense Cosine Embeddings</span></td>
+            </tr>
+            <tr>
+              <td><strong>Scoring Reproducibility</strong></td>
+              <td>Inconsistent</td>
+              <td>Deterministic</td>
+              <td><span class="badge badge-red">Non-Deterministic</span></td>
+              <td><span class="badge badge-green">100% Deterministic Math</span></td>
+            </tr>
+            <tr>
+              <td><strong>Hallucination Risk</strong></td>
+              <td>None</td>
+              <td>None</td>
+              <td><span class="badge badge-red">High Risk</span></td>
+              <td><span class="badge badge-green">0% (Strictly Guarded)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Verbatim Evidence Audit</strong></td>
+              <td>None</td>
+              <td>Keyword Hits</td>
+              <td>Vague / Fabricated</td>
+              <td><span class="badge badge-green">Exact Resume Quotes</span></td>
+            </tr>
+            <tr>
+              <td><strong>Must-Have Enforcement</strong></td>
+              <td>Fatigued</td>
+              <td>Rigid String Match</td>
+              <td>Bypassed by Prose</td>
+              <td><span class="badge badge-green">Authoritative Gating</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="banner">
+          ⚖️ <strong>Responsible AI Note:</strong> P_101 reduces reliance on demographic signals, but this does not constitute proof of absence of bias. Final hiring decisions remain solely with human recruiters.
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Architecture -->
+    <div class="slide" id="slide-5">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Five-Tier System Architecture</h2>
+          <p>Decoupled pipe-and-filter design enforcing mathematical separation of concerns</p>
+        </div>
+        <div class="slide-num">05 / 15</div>
+      </div>
+      <div class="slide-content">
+        <pre>
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ 1. PRESENTATION LAYER (Next.js 16 / React 19 / Tailwind CSS v4)                             │
+│    Recruiter Dashboard • Job Setup Workspace • Candidate Screening • Audit View             │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 2. API & ROUTING LAYER (FastAPI / Pydantic v2 / REST /api/v1)                               │
+│    /jobs • /resumes • /skills • /matching • /scoring • /gaps • /explanations                │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 3. DOCUMENT & EXTRACTION PROCESSING LAYER                                                    │
+│    PyMuPDF (PDF Block Sort) • python-docx • Section Segmentation • Canonical Normalizer     │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 4. DECISION & AI LAYER                                                                      │
+│    ┌───────────────────────────┐    ┌───────────────────────────┐    ┌─────────────────────┐│
+│    │ Deterministic Engine      │    │ Dense Semantic Engine     │    │ Multi-Layer Scorer  ││
+│    │ (Must-Have Rule Authority)│───>│ (all-MiniLM-L6-v2 Vectors)│───>│ (Orthogonal Weights)││
+│    └───────────────────────────┘    └───────────────────────────┘    └──────────┬──────────┘│
+│                                                                                 │           │
+│                                                                                 ▼           │
+│                                     ┌──────────────────────────────────────────────────────┐│
+│                                     │ Constrained LLM Adapter (Briefing Only • Zero Scores)││
+│                                     └──────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 5. DATA & PERSISTENCE LAYER (SQLAlchemy 2.0 / SQLite)                                       │
+│    Jobs • Candidates • Resumes • Profiles • Requirements • Scores • Skill Gaps              │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+        </pre>
+        <div class="grid-2">
+          <div class="card">
+            <h3>🔒 Core Architectural Rule</h3>
+            <p><strong>LLM ≠ Source of Truth</strong>. Hard requirements are governed solely by mathematical set logic. The LLM only explains what the deterministic engine proved.</p>
+          </div>
+          <div class="card">
+            <h3>🚫 Decision Boundary</h3>
+            <p><strong>LLM ≠ Hiring Decision</strong>. The system provides decision-support evidence without automated stack-ranking or auto-rejection mechanisms.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Tech Stack -->
+    <div class="slide" id="slide-6">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Production Technology Stack</h2>
+          <p>Verified, self-contained open-source technologies running 100% locally on CPU</p>
+        </div>
+        <div class="slide-num">06 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="card">
+            <h3>🐍 Backend Core</h3>
+            <ul>
+              <li><strong>Python 3.11+</strong> runtime</li>
+              <li><strong>FastAPI 0.115+</strong> async REST API</li>
+              <li><strong>Pydantic v2</strong> schema validation</li>
+              <li><strong>Uvicorn</strong> ASGI server</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>⚛️ Frontend Web</h3>
+            <ul>
+              <li><strong>Next.js 16.3.8</strong> (Turbopack)</li>
+              <li><strong>React 19.0</strong> with TypeScript</li>
+              <li><strong>Tailwind CSS v4</strong> styling</li>
+              <li><strong>Lucide-React</strong> icon system</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>📄 Document Ingestion</h3>
+            <ul>
+              <li><strong>PyMuPDF (fitz 1.28)</strong> PDF engine</li>
+              <li><strong>python-docx 1.2</strong> Word parser</li>
+              <li>Magic byte validation (%PDF)</li>
+              <li>Scanned image detection (422)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>🧠 Local NLP & AI</h3>
+            <ul>
+              <li><strong>sentence-transformers 6.1</strong></li>
+              <li><strong>all-MiniLM-L6-v2</strong> PyTorch weights</li>
+              <li>Cosine similarity via scikit-learn</li>
+              <li>Offline MockLLM / Gemini Live</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>💾 Persistence</h3>
+            <ul>
+              <li><strong>SQLite</strong> local relational DB</li>
+              <li><strong>SQLAlchemy 2.0+</strong> ORM</li>
+              <li>8 Entity Tables with foreign keys</li>
+              <li>100% reproducible audit trails</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>🧪 Automated Testing</h3>
+            <ul>
+              <li><strong>pytest</strong> (168 backend tests)</li>
+              <li><strong>Vitest</strong> (21 frontend tests)</li>
+              <li>189 total regression tests</li>
+              <li>Zero cloud cost / offline ready</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Ingestion -->
+    <div class="slide" id="slide-7">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Document Processing & Schema Structuring</h2>
+          <p>Converting raw, messy binary files into strongly typed Pydantic models</p>
+        </div>
+        <div class="slide-num">07 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <h3>📄 1. Candidate Resume Pipeline</h3>
+            <pre>
+Upload (.pdf / .docx)
+  ↓
+Validation & Magic Bytes (%PDF, PK\x03\x04)
+  ↓
+PyMuPDF Text Flow (sort=True)
+• Rejects scanned/empty files (422 error)
+  ↓
+Deterministic Rule Extraction
+• Regex Contact (Email, Phone, Links)
+• Section Headings Segmentation
+  ↓
+LLM Structuring Adapter
+• Normalizes employment history & dates
+  ↓
+CandidateProfile Pydantic Model
+            </pre>
+          </div>
+          <div class="card">
+            <h3>💼 2. Job Description Pipeline</h3>
+            <pre>
+Job Input (Raw Text / PDF / DOCX)
+  ↓
+Document Text Extraction
+  ↓
+Requirement Analysis (jd_analyzer.py)
+• Classifies Must-Have vs Nice-to-Have
+• Categorizes Skills, Tenure, Education
+  ↓
+Scope & Responsibility Extraction
+• Contextual duties for semantic search
+  ↓
+JobProfile Pydantic Model
+• Canonical skill keys & tenure rules
+            </pre>
+          </div>
+        </div>
+        <div class="banner">
+          🛡️ <strong>Layout Protection:</strong> Multi-column layouts are parsed top-to-bottom and left-to-right without interleaving adjacent columns, avoiding garbled sentences.
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 8: Matching -->
+    <div class="slide" id="slide-8">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Deterministic Authority vs. Semantic Context</h2>
+          <p>How P_101 prevents semantic similarity from falsely satisfying hard requirements</p>
+        </div>
+        <div class="slide-num">08 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <h3>⚙️ 1. Deterministic Matcher</h3>
+            <p><strong>The Authoritative Gatekeeper</strong></p>
+            <ul>
+              <li>Resolves canonical skill aliases (<code>k8s → Kubernetes</code>).</li>
+              <li>Evaluates formal degree hierarchies (PhD &gt; MS &gt; BS).</li>
+              <li>Calculates exact tenure months from date ranges.</li>
+              <li><strong>Protected Technology Matrix</strong>:
+                <br><code>Java ≠ JavaScript</code> | <code>C ≠ C++</code> | <code>C ≠ C#</code>
+                <br><code>Python ≠ PyTorch</code> | <code>React ≠ React Native</code>
+              </li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>🌐 2. Dense Semantic Matcher</h3>
+            <p><strong>The Contextual Relevance Engine</strong></p>
+            <ul>
+              <li>Pretrained <code>all-MiniLM-L6-v2</code> embedding model.</li>
+              <li>Computes 384-dimensional dense sentence vectors.</li>
+              <li>Cosine similarity score bounded between <code>[0.0, 1.0]</code>.</li>
+              <li>Evaluates contextual alignment between candidate achievements and job responsibilities.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card" style="border-left: 4px solid var(--warning);">
+          <h3 style="color: var(--warning);">💡 The Architectural Proof: MySQL vs. PostgreSQL</h3>
+          <p>Consider a candidate with <strong>MySQL</strong> applying for a role demanding <strong>PostgreSQL (Must-Have)</strong>:</p>
+          <ul style="margin-top: 6px;">
+            <li><strong>Semantic Matcher</strong>: Detects relational database context and awards high semantic similarity (<strong>0.55</strong>).</li>
+            <li><strong>Deterministic Matcher</strong>: Strictly flags PostgreSQL as <strong>UNMET</strong>, maintaining must-have gating integrity.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 9: Hybrid Scoring -->
+    <div class="slide" id="slide-9">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Multi-Factor Hybrid Scoring Model</h2>
+          <p>Mathematical orthogonal fusion with dynamic weight renormalization</p>
+        </div>
+        <div class="slide-num">09 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-4">
+          <div class="metric-card">
+            <div class="metric-val">30%</div>
+            <div class="metric-label">Rule Fit</div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Deterministic skill & degree satisfaction ratio</p>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">40%</div>
+            <div class="metric-label">Semantic Fit</div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Dense vector cosine alignment of achievements</p>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">20%</div>
+            <div class="metric-label">Experience Fit</div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Quantitative tenure ratio: min(tenure/req, 1.0)</p>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">10%</div>
+            <div class="metric-label">LLM Fit</div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 6px;">Grounded qualification depth reasoning</p>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="card">
+            <h3>📐 Separation of Experience (Invariants A–D)</h3>
+            <p>General career tenure is <strong>strictly excluded</strong> from Rule Fit and Semantic Fit, eliminating double-counting and guaranteeing orthogonal measurements.</p>
+          </div>
+          <div class="card">
+            <h3>⚖️ Dynamic Renormalization (Invariant E)</h3>
+            <p>If an optional component (such as LLM Fit) is disabled or unavailable, active weights automatically scale so that their sum equals exactly <strong>1.0</strong>.</p>
+          </div>
+        </div>
+        <div class="banner">
+          📌 <em>Note: These percentages represent project-configured engineering choices, not claims of industry-optimal constants. Score does not predict hiring success.</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 10: Gaps & LLM -->
+    <div class="slide" id="slide-10">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Skill-Gap Auditing & LLM Guardrails</h2>
+          <p>Actionable candidate feedback paired with strict responsible-AI boundaries</p>
+        </div>
+        <div class="slide-num">10 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <h3>🔍 1. Skill-Gap Dimensions</h3>
+            <ul>
+              <li><strong>Satisfied</strong>: Requirement met; anchored to verbatim resume quote.</li>
+              <li><strong>Insufficient</strong>: Skill present, but candidate lacks required depth, version, or associated tenure.</li>
+              <li><strong>Missing</strong>: Required skill completely absent from candidate profile text.</li>
+              <li><strong>Not Evaluable</strong>: Subjective traits (e.g. "team player") reserved for human interviews.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>🛡️ 2. Constrained LLM Guardrails</h3>
+            <ul>
+              <li><strong>Fact Grounding</strong>: LLM only receives verified facts from the deterministic matching engine.</li>
+              <li><strong>Zero Automated Verdicts</strong>: Strictly prohibited from stating "Hire", "Reject", or "Accept".</li>
+              <li><strong>Anti-Speculation</strong>: Cannot assume unmentioned skills (e.g., assuming Django from Python).</li>
+              <li><strong>Score Immutability</strong>: LLM has zero power to modify upstream computed scores.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card" style="border-left: 4px solid var(--danger);">
+          <h3 style="color: var(--danger);">⚠️ Human Oversight Disclaimer</h3>
+          <p>P_101 is an automated screening assistant designed to aid human recruiters. Matching scores and LLM recommendations do not constitute hiring or rejection decisions.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 11: UI -->
+    <div class="slide" id="slide-11">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Recruiter Web Dashboard & Interface</h2>
+          <p>Interactive Next.js 16 / React 19 workspace presenting audit trails and evidence</p>
+        </div>
+        <div class="slide-num">11 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <h3>📊 1. Overall Score & Gating</h3>
+            <p>Prominent numerical percentage (e.g. <strong>84.1%</strong>) paired with a high-visibility badge: <code>Must-Haves Met</code> (Green) or <code>Must-Haves Missing</code> (Red with AlertTriangle icon).</p>
+          </div>
+          <div class="card">
+            <h3>🧩 2. Score Breakdown Grid</h3>
+            <p>4-quadrant display showing Rule Fit, Semantic Fit, Experience Fit, and Education Fit independently, ensuring recruiters understand every sub-factor.</p>
+          </div>
+          <div class="card">
+            <h3>📋 3. Requirement Coverage Table</h3>
+            <p>Tabular view of all requirements with priority (Must vs Nice), match status, confidence score, and an expandable <strong>Show Snippet</strong> button citing the exact resume sentence.</p>
+          </div>
+          <div class="card">
+            <h3>📝 4. Gaps & Grounded Briefing</h3>
+            <p>Dual panels displaying classified skill gaps alongside the LLM Executive Briefing and targeted skill-development recommendations.</p>
+          </div>
+        </div>
+        <div class="banner">
+          💻 <strong>Live URL:</strong> The web dashboard is accessible at <code>http://localhost:3000</code> with complete client-side routing across <code>/</code>, <code>/jobs</code>, <code>/jobs/new</code>, and <code>/analysis</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 12: Evaluation -->
+    <div class="slide" id="slide-12">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Engineering Validation & Benchmark Results</h2>
+          <p>Phase 12 quantitative metrics across 189 total passing regression tests</p>
+        </div>
+        <div class="slide-num">12 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-4">
+          <div class="metric-card">
+            <div class="metric-val" style="color: var(--success);">10 / 10</div>
+            <div class="metric-label">Curated Cases Passed</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" style="color: var(--success);">6 / 6</div>
+            <div class="metric-label">Scoring Invariants</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" style="color: var(--success);">7 / 7</div>
+            <div class="metric-label">API Smoke Tests</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" style="color: var(--success);">189</div>
+            <div class="metric-label">Total Passing Tests</div>
+          </div>
+        </div>
+        <div class="grid-3" style="margin-top: 10px;">
+          <div class="metric-card">
+            <div class="metric-val">100%</div>
+            <div class="metric-label">LLM Grounding Rate</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">0</div>
+            <div class="metric-label">Hallucinations Detected</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val">0</div>
+            <div class="metric-label">Automated Verdicts</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top: 10px;">
+          <h3>⚡ Pipeline Execution Latencies (Consumer CPU, Median)</h3>
+          <p>Document Parsing: <strong>12.3 ms</strong> | Profile Extraction: <strong>43.7 ms</strong> | Rule Matching: <strong>10.8 ms</strong> | Scoring: <strong>0.2 ms</strong> | Explanation: <strong>1.9 ms</strong></p>
+          <p style="margin-top: 4px; color: var(--accent-light);"><strong>End-to-End Pipeline Latency: 72.65 ms (Median) / 130.8 ms (p95)</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 13: Demo Flow -->
+    <div class="slide" id="slide-13">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Live Demonstration Scenarios & Workflow</h2>
+          <p>5–6.5 minute live presentation script validating three diverse candidate archetypes</p>
+        </div>
+        <div class="slide-num">13 / 15</div>
+      </div>
+      <div class="slide-content">
+        <table>
+          <thead>
+            <tr>
+              <th>Demonstration Step</th>
+              <th>Document Input</th>
+              <th>Observed System Behavior</th>
+              <th>Outcome & Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Step 1: Job Setup</strong></td>
+              <td><code>01_backend_engineer.pdf</code></td>
+              <td>Extracts 5 must-haves (Python, FastAPI, Postgres, Docker, Redis) & 5.0 yr exp</td>
+              <td><span class="badge badge-blue">Job Configured</span></td>
+            </tr>
+            <tr>
+              <td><strong>Scenario A: Strong Match</strong></td>
+              <td>Alex Morgan (<code>01_strong_backend.pdf</code>)</td>
+              <td>Meets all 5 mandatory skills; 6.2 years experience; exact citations</td>
+              <td><span class="badge badge-green">84.1% (Must-Haves Met)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Scenario B: Weak Match</strong></td>
+              <td>Brian Miller (<code>02_weak_backend.pdf</code>)</td>
+              <td>Basic Python only; fails 4 must-haves; severe tenure deficit (0.6 yrs)</td>
+              <td><span class="badge badge-red">25.2% (Must-Haves Missing)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Scenario C: Semantic Contrast</strong></td>
+              <td>Hector Vance (<code>08_related_skills.pdf</code>)</td>
+              <td>High semantic fit (55.1% for Flask/MySQL); Deterministic holds line: Unmet</td>
+              <td><span class="badge badge-red">52.1% (Must-Haves Missing)</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="card" style="margin-top: 10px;">
+          <h3>🎬 Demonstration Handoff</h3>
+          <p>Next, we switch to our running browser instance at <code>http://localhost:3000</code> to execute this sequence live.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 14: Limitations & Future Scope -->
+    <div class="slide" id="slide-14">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>System Limitations & Future Scope</h2>
+          <p>Transparent academic acknowledgment of boundaries and roadmap enhancements</p>
+        </div>
+        <div class="slide-num">14 / 15</div>
+      </div>
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="card">
+            <h3>⚠️ Current Technical Limitations</h3>
+            <ul>
+              <li><strong>CPU Cold-Start Latency</strong>: Initial PyTorch weight loading takes ~2s on first startup (sub-30ms warm).</li>
+              <li><strong>Absence of Native OCR</strong>: Scanned image-only PDFs are rejected via 422 error; requires embedded text.</li>
+              <li><strong>Taxonomy Boundaries</strong>: Emerging proprietary frameworks rely on semantics rather than aliases.</li>
+              <li><strong>Single-Candidate Analysis</strong>: Workspace evaluates one candidate at a time; no comparative stack-ranking.</li>
+              <li><strong>Synthetic Benchmarks</strong>: Synthetic evaluation data; does not establish real-world hiring efficacy.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>🚀 Future Research Directions</h3>
+            <ul>
+              <li><strong>Local OCR Pipeline</strong>: Integrate lightweight Tesseract / PaddleOCR to support scanned image PDFs.</li>
+              <li><strong>Dynamic Ontology</strong>: Ingest public ESCO / O*NET skill graphs to expand alias mappings dynamically.</li>
+              <li><strong>Recruiter Policy Sliders</strong>: Allow authenticated recruiters to configure scoring weights per role.</li>
+              <li><strong>Consented Real-World Validation</strong>: Conduct IRB-approved empirical studies in active recruitment pipelines.</li>
+              <li><strong>Asynchronous Batch Queue</strong>: Celery/Redis worker queue for bulk background resume processing.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 15: Conclusion -->
+    <div class="slide" id="slide-15">
+      <div class="slide-header">
+        <div class="slide-title-group">
+          <h2>Conclusion & Live Demo Handoff</h2>
+          <p>Summary of project achievements and invitation for technical discussion</p>
+        </div>
+        <div class="slide-num">15 / 15</div>
+      </div>
+      <div class="slide-content" style="justify-content: center; align-items: center; text-align: center;">
+        <div style="max-width: 800px; padding: 30px; background: rgba(15,23,42,0.8); border: 1px solid var(--border-color); border-radius: 16px;">
+          <h2 style="font-size: 2rem; color: #f8fafc; margin-bottom: 16px;">Summary of Contributions</h2>
+          <p style="font-size: 1.05rem; color: var(--text-secondary); line-height: 1.6; text-align: left;">
+            ✅ <strong>Proved Decoupled Architecture</strong>: Demonstrates that AI resume screening does not require opaque, non-deterministic end-to-end LLM decision-making.<br>
+            ✅ <strong>Mathematical Transparency</strong>: Decouples deterministic rule verification from dense vectors, guaranteeing 100% score reproducibility and zero hallucinations.<br>
+            ✅ <strong>Verbatim Evidence Citations</strong>: Skill gaps are grounded in actual resume text, enabling fair recruiter audits.<br>
+            ✅ <strong>Fully Validated</strong>: 189 passing regression tests, 6/6 verified invariants, and 72.65 ms median pipeline latency.
+          </p>
+          <div style="margin: 24px 0; height: 1px; background: var(--border-color);"></div>
+          <h1 style="font-size: 2.2rem; color: var(--accent-light); font-weight: 800;">THANK YOU!</h1>
+          <p style="font-size: 1rem; color: var(--text-secondary); margin-top: 6px;">
+            Questions & Technical Viva Discussion
+          </p>
+          <div style="margin-top: 20px;">
+            <a href="http://localhost:3000" target="_blank" class="btn btn-primary" style="font-size: 1rem; padding: 10px 20px;">
+              🚀 Launch Live Recruiter Demonstration
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Speaker Notes Drawer -->
+  <div class="speaker-notes-drawer" id="speakerNotesDrawer">
+    <h4>
+      <span>🎙️ Speaker Notes — Slide <span id="notesSlideNum">1</span></span>
+      <span style="cursor: pointer;" onclick="toggleNotes()">✕ Close</span>
+    </h4>
+    <div class="speaker-notes-content" id="speakerNotesContent">
+      Loading speaker notes...
+    </div>
+  </div>
+
+  <script>
+    const totalSlides = 15;
+    let currentSlide = 1;
+
+    const speakerNotes = {
+      1: "Good morning, respected members of the evaluation committee and faculty guides. Today, I am presenting project P_101: An LLM-Based Resume Screening System. In today’s recruitment landscape, hiring teams face massive resume volumes. Most organizations resort either to traditional keyword Applicant Tracking Systems, which are brittle and miss qualified candidates, or to end-to-end generative AI prompts, which are opaque, non-deterministic, and prone to hallucinating qualifications. P_101 resolves this dilemma through an evidence-grounded, multi-layered decision-support platform that keeps the human recruiter firmly in control. Let us begin by examining the exact problem statement.",
+      2: "The problem begins with scale. Technical recruiters frequently process hundreds of applications for a single opening. When humans review resumes under time pressure, evaluations become inconsistent and fatigued. To cope, companies deploy keyword-based ATS tools. But keyword search is brittle: if a candidate writes 'Postgres' or 'K8s', a naive keyword tool searching for 'PostgreSQL' or 'Kubernetes' marks them as unqualified. Conversely, candidates who mechanically paste keywords can game the system. Recently, developers have tried prompting ChatGPT to rate resumes directly. But direct LLM grading is a black box: it hallucinates skills, cannot produce a reproducible mathematical score, and is susceptible to prompt injection. Our central requirement is to build a transparent, auditable system that extracts structured facts, proves every match with verbatim evidence, and leaves hiring authority with the human.",
+      3: "To address this challenge rigorously, we formulated ten engineering objectives. First, ingest raw PDF and DOCX files without layout corruption. Second, extract structured requirements from job descriptions, separating must-haves from nice-to-haves. Third, build a canonical skill taxonomy with alias mapping and strict protection between lookalike technologies. Fourth, implement an authoritative deterministic matching engine. Fifth, use local dense embeddings to capture semantic context. Sixth, formulate a hybrid scoring model that mathematically separates skills from tenure. Seventh, isolate skill gaps with verbatim quotes. Eighth, build a constrained LLM explanation adapter with zero hiring verdicts. Ninth, provide a modern recruiter web dashboard. And tenth, enforce ethical guardrails ensuring human decision authority. Let us compare this approach against conventional systems.",
+      4: "This comparison table illustrates the fundamental trade-offs in candidate screening. Manual review offers good context understanding, but suffers from low throughput and fatigue. Keyword ATS provides high speed, but fails on simple abbreviations like 'JS' or 'K8s', lacks semantic context, and provides no audit trail. Pure generative LLM screening understands language well, but introduces severe risks: hallucinated degrees, high latency, non-reproducible scoring, and prompt injection vulnerabilities. P_101 combines the strengths of both worlds while eliminating their flaws. We use deterministic rules for hard gatekeeping, dense sentence embeddings for semantic context, and an LLM strictly for evidence-grounded summarization. The human recruiter receives an auditable, instant breakdown in under 150 milliseconds. Next, let us inspect the system architecture.",
+      5: "Here is the architectural blueprint of P_101. It is structured into five strictly decoupled layers. At the top is our Presentation Layer, built with Next.js 16 and React 19. It communicates via REST with our FastAPI backend. In Layer 3, incoming resumes and job descriptions are parsed by our Document Processing services. Layer 4 is the heart of the system—the Decision and AI Layer. Notice the strict hierarchy: the Deterministic Matching Engine is the sole mathematical authority over hard requirements. The SentenceTransformer embedding model evaluates semantic proximity as supporting evidence. These feed into our Multi-Layer Hybrid Scorer. Downstream from scoring, our Constrained LLM Adapter synthesizes the verified findings into plain English. Crucially: the LLM has zero authority over the score, and cannot override missing must-haves. Finally, Layer 5 persists all data in SQLite for full auditability. Let us review the technology stack that powers this.",
+      6: "This table summarizes our technology stack. Every component was selected for performance, reliability, and auditability. The backend is built on Python 3.11 with FastAPI and Pydantic v2. The frontend uses Next.js 16 with React 19, TypeScript, and Tailwind CSS. For document parsing, we utilize PyMuPDF and python-docx, which handle multi-column reading order and table deduplication. Our NLP layer runs all-MiniLM-L6-v2 locally on CPU via sentence-transformers, generating 384-dimensional dense vectors in milliseconds. Persistence is handled by SQLite and SQLAlchemy. The entire system is 100% self-contained and operates completely offline with zero cloud fees. Next, let us see how resumes and job descriptions enter this pipeline.",
+      7: "Before evaluating a candidate, we must extract clean, structured data from messy real-world documents. On the resume side, incoming files pass binary magic-byte inspection to verify file health and prevent malicious spoofing. If a PDF is a flat image without text, our parser catches it immediately with a 422 error. For valid PDFs, PyMuPDF sorts text blocks to preserve natural reading order across multi-column layouts. We then extract clean contact details, skills, chronological employment, and education into a strongly validated Pydantic schema. Simultaneously, the job description is analyzed to extract structured requirements, categorizing them into mandatory must-haves and preferred nice-to-haves across skills, tenure, and education. Once both schemas are validated, they proceed to matching.",
+      8: "Slide 8 highlights our core technical innovation. We deploy two distinct matching engines. The Deterministic Engine is our authoritative gatekeeper. It resolves skill synonyms using our canonical taxonomy—for instance, mapping 'K8s' to 'Kubernetes'—while enforcing our Protected Technology Matrix to ensure Java and JavaScript or C and C++ are never conflated. It outputs four states: matched, partial, unmatched, or not evaluable. In parallel, our Semantic Engine computes dense cosine embeddings using all-MiniLM-L6-v2 to understand project context. Now, here is our critical design invariant: semantic similarity provides supporting evidence, but it can never override a missing must-have. Consider a candidate with MySQL applying for a role demanding PostgreSQL. Our semantic engine awards them a 0.55 similarity score because it recognizes relational database context. But our deterministic engine holds the line: PostgreSQL is marked UNMET, and the candidate is flagged with 'Must-Haves Missing'. Next, let us see how these sub-scores fuse into a hybrid score.",
+      9: "Slide 9 shows our hybrid scoring architecture. We combine four orthogonal components: Rule Fit at 30%, Semantic Fit at 40%, Experience Fit at 20%, and LLM-Supported Fit at 10%. We emphasize that these are project-configured engineering weights, not claims of industry optimality. Notice our mathematical safeguards: during our Phase 8 audits, we proved that general career tenure was being mixed into semantic vectors and rule counts. We refactored the architecture so that experience is calculated solely through our tenure ratio formula and strictly excluded from Rule Fit and Semantic Fit. Furthermore, if an optional component like LLM Fit is disabled, our engine dynamically renormalizes the remaining weights so that they always sum to exactly 1.0. Finally, our score is accompanied by an independent 'Must-Haves Met' gating flag. Even if a candidate scores 60% on adjacent skills, recruiters instantly see if mandatory skills are missing. Let us now examine how we identify skill gaps and protect LLM integrity.",
+      10: "On Slide 10, we look at skill-gap auditing and responsible AI guardrails. In technical hiring, recruiters do not just want a score—they want to know where the candidate falls short. Our engine categorizes every requirement into one of four states: Satisfied, Insufficient, Missing, or Not Evaluable for subjective qualities like 'team player' that belong in an interview. Every satisfied item is linked to a verbatim quote from the resume. On the right, we highlight our LLM guardrails. In many modern AI systems, the LLM is given unconstrained authority. In P_101, the LLM is strictly constrained: it only receives verified facts from the deterministic engine. It is explicitly prohibited from generating hiring or rejection verdicts, it cannot speculate on unmentioned skills, and it cannot alter the mathematical score. The user interface prominently displays a human-review disclaimer. Now, let us look at the recruiter web interface where all of this comes together.",
+      11: "Slide 11 shows our recruiter web interface. This is not a mockup; it is the actual Next.js application running on localhost:3000. At the top left, the recruiter sees the Overall Score Badge—in this case, 84.1%—accompanied by our prominent green 'Must-Haves Met' badge. To the right is our 4-quadrant Score Breakdown Card, showing Rule Fit, Semantic Fit, Experience Fit, and Education Fit independently. Below that is our Requirement Coverage Table. For every requirement, recruiters see its priority, its match status, and an expandable citation showing the exact sentence from the candidate's resume where the skill was identified. Below the table, the left panel audits Skill Gaps, while the right panel renders the grounded LLM Executive Briefing. Everything the recruiter needs to make a fair, evidence-based judgment is visible on one screen. Next, let us inspect our engineering validation results.",
+      12: "On Slide 12, we present our Phase 12 engineering evaluation results. We validated our system across a synthetic benchmark dataset of 10 resumes, 5 job descriptions, and 10 curated test cases. As shown in the metric cards, 10 out of 10 curated benchmark cases passed ground-truth expectations. All 6 mathematical scoring invariants held true under testing. All 7 API smoke tests were operational. In our regression suites, all 168 backend pytest cases and all 21 frontend Vitest cases passed cleanly—a total of 189 passing tests. Across all evaluation runs, we measured 100% factual grounding in LLM citations, exactly zero hallucinated credentials, and exactly zero automated hiring verdicts. Furthermore, our pipeline latency is exceptional: on standard consumer CPU, our median end-to-end processing time is just 72.65 milliseconds. We explicitly clarify that these metrics validate software engineering correctness on synthetic data, not real-world hiring efficacy. Next, let us outline our live demonstration workflow.",
+      13: "Slide 13 outlines the exact live demonstration we will conduct following this slide presentation. We will walk through three distinct candidate scenarios against our baseline Senior Backend Engineer position. In Step 1, we upload the job description and extract 5 must-haves and a 5-year tenure requirement. In Scenario A, we screen Alex Morgan—a strong candidate with 6.2 years of FastAPI, PostgreSQL, and Docker experience. Alex achieves an 84.1% fit score with a green 'Must-Haves Met' badge. In Scenario B, we screen Brian Miller, a junior candidate with basic Python. Despite having the Python keyword, Brian lacks 4 must-haves and has only 0.6 years tenure; the score drops to 25.2% with a red 'Must-Haves Missing' badge. In Scenario C, we screen Hector Vance, who possesses Flask and MySQL. Here, we demonstrate our hybrid advantage: Hector achieves a high semantic score of 55.1%, but our deterministic engine holds the line: must-haves remain missing. Before launching the live demo, let us review our limitations and future scope.",
+      14: "On Slide 14, we honestly acknowledge our current technical boundaries and outline future research. First, our document parser requires a digital text stream; scanned image-only PDFs are rejected via a 422 error rather than processed through heavy OCR models. Second, initial CPU model loading requires roughly 2 seconds on cold start, although warm inference is sub-30 milliseconds. Third, our canonical taxonomy covers major frameworks, but highly niche proprietary tools rely on dense semantics. Fourth, the system operates as a single-candidate decision-support audit tool rather than a batch ranker, and our benchmarks are synthetic. For future work, we plan to integrate a local OCR engine like Tesseract, connect to public ontologies like ESCO and O*NET, introduce configurable scoring policy sliders for recruiters, conduct consented real-world validation studies, and implement an asynchronous Celery batch processing queue. Now, let us conclude.",
+      15: "In conclusion, P_101 proves that AI-assisted resume screening does not require opaque, non-deterministic generative models. By decoupling deterministic rule matching, dense vector embeddings, and constrained natural language generation, we achieve rigorous mathematical transparency while eliminating AI hallucinations. Every match and skill gap is grounded in verbatim textual evidence, empowering human recruiters to make informed, fair decisions. With all 189 tests passing and all 6 scoring invariants verified, the system is fully operational. Thank you for your time and attention. I am now delighted to take your questions and transition directly into our live system demonstration."
+    };
+
+    function showSlide(num) {
+      if (num < 1) num = 1;
+      if (num > totalSlides) num = totalSlides;
+      currentSlide = num;
+
+      document.querySelectorAll('.slide').forEach((el, index) => {
+        el.classList.toggle('active', (index + 1) === currentSlide);
+      });
+
+      // Update progress bar
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      document.getElementById('progressBar').style.width = progressPercent + '%';
+
+      // Update speaker notes
+      document.getElementById('notesSlideNum').textContent = currentSlide;
+      document.getElementById('speakerNotesContent').textContent = speakerNotes[currentSlide] || "No notes available for this slide.";
+    }
+
+    function nextSlide() {
+      showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      showSlide(currentSlide - 1);
+    }
+
+    function toggleNotes() {
+      const drawer = document.getElementById('speakerNotesDrawer');
+      drawer.classList.toggle('open');
+      const btn = document.getElementById('notesBtn');
+      btn.classList.toggle('btn-primary', drawer.classList.contains('open'));
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key === 'n' || e.key === 'N') {
+        toggleNotes();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullScreen();
+      } else if (e.key === 'Home') {
+        showSlide(1);
+      } else if (e.key === 'End') {
+        showSlide(totalSlides);
+      }
+    });
+
+    // Initialize Slide 1
+    showSlide(1);
+  </script>
+</body>
+</html>
