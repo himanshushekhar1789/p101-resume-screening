@@ -703,4 +703,89 @@ Phase 10 strictly separates LLM explanation from the Phase 8 `llm_fit` numerical
 - The screening pipeline degrades gracefully if the LLM provider is unavailable: Phases 1–9 execute deterministically without dependency on LLM connectivity.
 - Offline and CI/CD testing utilize `MockLLMClient`, providing 100% deterministic, reproducible explanations without requiring external API keys.
 
+---
+
+## 13. Phase 11: Frontend Web Dashboard
+
+Phase 11 introduces a modern, accessible web interface for recruiters and hiring managers to interact with the P_101 screening system.
+
+```text
+                    FRONTEND (Next.js + TypeScript + Tailwind)
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         ▼                            ▼                            ▼
+    Job Setup                   Resume Upload              Analysis Workspace
+  (/jobs/new)                     (/analysis)                  (/analysis)
+         │                            │                            │
+         └────────────────────────────┼────────────────────────────┘
+                                      ▼
+                        FASTAPI BACKEND (/api/v1)
+                                      │
+         ┌────────────────────────────┼────────────────────────────┐
+         ▼                            ▼                            ▼
+    Deterministic                 Semantic                   Multi-Layer
+       Matching                   Matching                     Scoring
+      (Phase 6)                  (Phase 7)                    (Phase 8)
+         │                            │                            │
+         └────────────────────────────┼────────────────────────────┘
+                                      ▼
+                        Skill-Gap & Evidence Engine
+                                 (Phase 9)
+                                      │
+                                      ▼
+                       LLM Explanations & Recommendations
+                                 (Phase 10)
+```
+
+### 13.1 Core Principles
+1. **Decision-Support Dashboard**: The web UI serves strictly to empower human decision-makers. It contains zero automated hiring actions (`Hire`, `Reject`, `Shortlist`).
+2. **Deterministic-First Presentation**: System-calculated scores, deterministic requirement coverage, and evidence snippets are displayed verbatim without client-side recalculation.
+3. **Clear Provenance Distinction**: System facts and metrics are visually distinguished from AI-generated narrative explanations and recommendations.
+4. **Mandatory Recruiter Oversight**: The human-review disclaimer is prominently and permanently rendered across all evaluation views.
+5. **Single-Candidate Deep Dive**: Reflecting Phases 1–10, the dashboard evaluates single candidate fit against a job, strictly avoiding leaderboard rankings or candidate tiering.
+
+### 13.2 Frontend Architecture & Directory Layout
+```text
+frontend/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx                     # System telemetry, recent screenings, workflow guide
+│   │   ├── layout.tsx                   # App shell, fonts, metadata
+│   │   ├── globals.css                  # Tailwind styles & semantic variables
+│   │   ├── jobs/
+│   │   │   ├── page.tsx                 # Active job overview and management
+│   │   │   └── new/page.tsx             # Job setup (upload JD document or paste text)
+│   │   ├── analysis/
+│   │   │   └── page.tsx                 # Core candidate evaluation and audit workspace
+│   │   └── candidates/
+│   │       ├── page.tsx                 # Candidates entry view
+│   │       └── [id]/page.tsx            # Dynamic candidate record view
+│   ├── components/
+│   │   ├── layout/                      # Header, Sidebar, AppShell
+│   │   ├── score/                       # OverallScoreBadge, ScoreBreakdownCard, ScoreExplanationPanel
+│   │   ├── requirements/                # RequirementCoverageTable, status indicators
+│   │   ├── skill-gaps/                  # SkillGapSection, SkillGapCard, ExperienceGapCard
+│   │   ├── explanation/                 # LLMExplanationView, RecommendationCard
+│   │   └── ui/                          # Button, Card, Badge, Alert
+│   ├── lib/
+│   │   └── api/
+│   │       └── client.ts                # Centralized typed API client
+│   └── types/
+│       └── api.ts                       # Strongly-typed interfaces mirroring backend Pydantic models
+├── vitest.config.ts                     # Vitest testing configuration
+└── package.json                         # Next.js 16, React 19, Tailwind CSS v4, Lucide icons
+```
+
+### 13.3 API Client Integration
+The frontend interfaces with the backend exclusively via `frontend/src/lib/api/client.ts`:
+- Configured with `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000`).
+- Provides strongly-typed async methods matching FastAPI routes:
+  - `checkHealth()`: `GET /api/v1/health`
+  - `analyzeJobText()`, `analyzeJobFile()`: `POST /api/v1/jobs/analyze`, `POST /api/v1/jobs/analyze/upload`
+  - `parseResume()`, `extractResume()`: `POST /api/v1/resumes/parse`, `POST /api/v1/resumes/extract`
+  - `matchFromFiles()`, `matchAndAnalyze()`: `POST /api/v1/matching/from-files`, `POST /api/v1/matching/analyze`
+  - `explanationFromFiles()`, `analyzeExplanation()`: `POST /api/v1/explanations/from-files`, `POST /api/v1/explanations/analyze`
+- Standardized error handling extracting HTTP error details (`detail` field) and converting them into user-friendly messages.
+
+
 

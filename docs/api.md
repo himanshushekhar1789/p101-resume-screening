@@ -727,7 +727,34 @@ Executes end-to-end document parsing, extraction, matching, scoring, gap analysi
 
 ---
 
-## 11. Future Phases: Screening & Rankings
+---
+
+## 11. Frontend Web Dashboard Integration (Phase 11)
+
+The Next.js 16 frontend integrates with the backend API routes via a centralized typed client located at `frontend/src/lib/api/client.ts`.
+
+### Configuration
+The client reads the backend URL from an environment variable:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### Methods & Endpoints Consumed
+| Frontend API Method | HTTP Route | Payload Type | Response Type | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| `api.checkHealth()` | `GET /api/v1/health` | None | `{ status, app, version }` | System telemetry bar in Dashboard |
+| `api.analyzeJobText()` | `POST /api/v1/jobs/analyze` | JSON `{ job_description, job_title }` | `JobAnalysisResponse` | Extracts requirements from pasted text |
+| `api.analyzeJobFile()` | `POST /api/v1/jobs/analyze/upload` | Multipart `file`, `job_title` | `JobAnalysisResponse` | Extracts requirements from uploaded PDF/DOCX |
+| `api.parseResume()` | `POST /api/v1/resumes/parse` | Multipart `file` | `DocumentParseResponse` | Validates and extracts text from resume |
+| `api.extractResume()` | `POST /api/v1/resumes/extract` | Multipart `file` | `ResumeExtractionResponse` | Extracts structured candidate profile |
+| `api.matchFromFiles()` | `POST /api/v1/matching/from-files` | Multipart `resume_file`, `job_file` | `CandidateJobMatchWithScoreResponse` | End-to-end matching, scoring, gap analysis, and explanation |
+| `api.matchAndAnalyze()` | `POST /api/v1/matching/analyze` | JSON `MatchingAnalyzeRequest` | `CandidateJobMatchWithScoreResponse` | Matches pre-configured job with extracted candidate |
+| `api.explanationFromFiles()` | `POST /api/v1/explanations/from-files` | Multipart `resume_file`, `job_file` | `LLMExplanationResponse` | Generates standalone grounded explanation |
+| `api.analyzeExplanation()` | `POST /api/v1/explanations/analyze` | JSON `ExplanationAnalyzeRequest` | `LLMExplanationResponse` | Generates explanation from structured profiles |
+
+---
+
+## 12. Future Phases: Screening & Rankings (Unimplemented)
 
 ### `POST /jobs/{id}/screen`
 Execute the multi-layer hybrid screening pipeline over all uploaded resumes for a job posting.
@@ -740,5 +767,6 @@ Retrieve a candidate's complete profile, evidence citations, skill gaps, and per
 
 ### `GET /jobs/{id}/export`
 Export screening results as a CSV file with complete scores and breakdown.
+
 
 

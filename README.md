@@ -747,66 +747,73 @@ p101-resume-screening/
 ## 13. Getting Started
 
 ### Prerequisites
+---
+
+## 12. Frontend Web Dashboard (Phase 11)
+
+The frontend provides an intuitive, accessible web dashboard built with **Next.js 16 (App Router)**, **TypeScript**, and **Tailwind CSS v4**.
+
+### Key Pages & Capabilities
+- **Dashboard (`/`)**: Displays real-time backend operational status (`/health`), recent session screening history, and architecture summaries.
+- **Job Setup (`/jobs/new`)**: Configure target roles by uploading JD documents (`.pdf`, `.docx`, `.txt`) or pasting raw text; inspects extracted mandatory/preferred skills, experience tenure, and degree requirements.
+- **Job Management (`/jobs`)**: Review active screening roles and criteria.
+- **Analysis Workspace (`/analysis`)**: Central evaluation screen. Supports selecting an active job role or uploading a JD document alongside a candidate resume (`.pdf` or `.docx`).
+- **Score Breakdown & Safety Signals**: Renders overall candidate fit percentage, component breakdown (Rule Fit, Semantic Fit, Experience Fit, LLM Fit), and safety signals (`all_must_haves_satisfied`).
+- **Requirement-by-Requirement Audit**: Interactive, accessible table detailing priority, status, match method, semantic cosine similarity, and expandable verbatim evidence citations.
+- **Evidence-Grounded Skill Gaps**: Distinguishes satisfied, missing, insufficient (with exact tenure shortfall), and not-evaluable skills. Keeps career experience tenure strictly separate.
+- **Grounded AI Explanations & Recommendations**: Renders executive summaries, verified strengths, key gaps, and targeted project recommendations with a permanent, prominent Recruiter Review Policy disclaimer.
+
+---
+
+## 13. Getting Started & Local Development
+
+### Prerequisites
 - Python 3.11 or higher
+- Node.js 18+ (tested on Node v24) and npm
 - Git
 
-### Step 1: Clone and Enter the Directory
+### Step 1: Set Up Backend
 ```bash
-cd p101-resume-screening
-```
-
-### Step 2: Set Up Virtual Environment
-```bash
-# Create virtual environment
-python -m venv .venv
-
 # Activate virtual environment
 # Windows (PowerShell):
 .\.venv\Scripts\Activate.ps1
 # Linux/macOS:
 source .venv/bin/activate
-```
 
-### Step 3: Install Dependencies
-```bash
+# Install backend dependencies
 pip install -r requirements.txt
-```
 
-### Step 4: Configure Environment Variables
-Copy `.env.example` to `.env`:
-```bash
+# Configure environment variables
 cp .env.example .env
-```
-Key configuration values in `.env`:
-```ini
-APP_ENV=development
-DEBUG=True
-PORT=8000
-DATABASE_URL=sqlite:///./resume_screening.db
-LLM_PROVIDER=mock   # Options: mock (offline testing), gemini, openai
-LLM_API_KEY=        # Required only when using cloud LLM providers
-EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
-SEMANTIC_MATCHING_ENABLED=True
-SEMANTIC_HIGH_THRESHOLD=0.75
-SEMANTIC_MEDIUM_THRESHOLD=0.55
-RULE_FIT_WEIGHT=0.30
-SEMANTIC_FIT_WEIGHT=0.40
-EXPERIENCE_FIT_WEIGHT=0.20
-LLM_FIT_WEIGHT=0.10
-NOT_EVALUABLE_POLICY=exclude
-```
 
-### Step 5: Run the Backend Application
-```bash
+# Run FastAPI backend
 uvicorn backend.app.main:app --reload --port 8000
 ```
-- Interactive API Documentation (Swagger UI): `http://127.0.0.1:8000/docs`
-- Alternative API Documentation (ReDoc): `http://127.0.0.1:8000/redoc`
-- Health Check: `http://127.0.0.1:8000/api/v1/health`
+- Interactive API Documentation: `http://localhost:8000/docs`
+- Health Check: `http://localhost:8000/api/v1/health`
 
-### Step 6: Run Tests
+### Step 2: Set Up and Run Frontend
 ```bash
-pytest backend/tests/ -v
+cd frontend
+
+# Install frontend dependencies
+npm install
+
+# Configure environment variables
+cp .env.example .env.local
+
+# Run Next.js development server
+npm run dev
+```
+- Frontend Web Dashboard: `http://localhost:3000`
+
+### Step 3: Run Tests
+```bash
+# Run backend test suite (168 tests)
+pytest backend/tests/ -q
+
+# Run frontend test suite (21 tests)
+cd frontend && npm test
 ```
 
 ---
@@ -823,7 +830,7 @@ pytest backend/tests/ -v
 - [x] **Phase 8: Multi-Layer Hybrid Fusion Scoring**
 - [x] **Phase 9: Skill-Gap Analysis & Evidence Grounding**
 - [x] **Phase 10: LLM Explanations & Personalized Recommendations**
-- [ ] **Phase 11: Frontend Web Dashboard**
+- [x] **Phase 11: Frontend Web Dashboard**
 - [ ] **Phase 12: End-to-End System Integration**
 - [ ] **Phase 13: Synthetic Evaluation & Benchmark Testing**
 - [ ] **Phase 14: Documentation & Docker Deployment**
