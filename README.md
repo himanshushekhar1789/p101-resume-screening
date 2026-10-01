@@ -9,6 +9,17 @@
 
 ---
 
+## Documentation & Demonstration Quick Links
+
+* 📄 **[Final Technical Project Report](docs/final-project-report.md)**: Comprehensive 29-section academic report (Problem Statement, Architecture, Scoring Formulations, Benchmark Gates, Ethical Guardrails).
+* 🏛️ **[System Architecture Guide](docs/architecture.md)**: Deep dive into pipeline decoupling, false-positive protection matrix, and mathematical scoring invariants.
+* 📊 **[Evaluation & Benchmark Suite](docs/evaluation.md)**: Synthetic dataset (10 resumes, 5 JDs, 10 curated cases), scoring invariants (A–F), and pipeline latency telemetry.
+* 🎬 **[Live Demo Guide](docs/demo.md)**: 5–7 minute click-by-click live presentation script with talking points and UI inspection cues.
+* ✅ **[Demo Checklist & Viva Q&A](docs/demo-checklist.md)**: Pre-flight checklist and authoritative answers to common evaluation and viva defense questions.
+* 📑 **[Master Documentation Index](docs/README.md)**: Complete directory of all project technical documentation and evaluation reports.
+
+---
+
 ## 1. System Vision & Objective
 
 Traditional Applicant Tracking Systems (ATS) rely either on brittle keyword matching (missing qualified candidates who use synonyms) or opaque black-box LLM scoring (hallucinating qualifications and exhibiting unexplainable bias). 
@@ -846,6 +857,8 @@ The system includes a dedicated, reproducible benchmarking suite in `evaluation/
 - [x] **Phase 10: LLM Explanations & Personalized Recommendations**
 - [x] **Phase 11: Frontend Web Dashboard**
 - [x] **Phase 12: Evaluation, Benchmarking & End-to-End Validation**
+- [x] **Phase 13: Demo Readiness & End-to-End Demo Validation**
+- [x] **Phase 14: Final Project Documentation & Report Preparation**
 
 
 
