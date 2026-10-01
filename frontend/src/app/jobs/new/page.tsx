@@ -64,7 +64,12 @@ export default function NewJobPage() {
           setIsLoading(false);
           return;
         }
-        result = await api.analyzeJobFile(selectedFile, jobTitle || undefined);
+        if (selectedFile.name.toLowerCase().endsWith('.txt')) {
+          const text = await selectedFile.text();
+          result = await api.analyzeJobText(text, jobTitle || undefined);
+        } else {
+          result = await api.analyzeJobFile(selectedFile, jobTitle || undefined);
+        }
       } else {
         if (!jobDescription.trim()) {
           setError('Please paste or enter the job description text.');

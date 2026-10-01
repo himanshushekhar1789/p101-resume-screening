@@ -114,15 +114,34 @@ export default function AnalysisPage() {
       let analysisResponse: CandidateJobMatchWithScoreResponse;
 
       if (jobMode === 'file' && jobFile) {
-        setLoadingStep('Running end-to-end extraction, matching, and scoring pipeline...');
-        analysisResponse = await api.matchFromFiles({
-          resumeFile,
-          jobFile,
-          includeSemantic: true,
-          includeScore: true,
-          includeSkillGaps: true,
-          includeExplanation: true,
-        });
+        if (jobFile.name.toLowerCase().endsWith('.txt')) {
+          setLoadingStep('Reading job description and parsing candidate resume...');
+          const jobText = await jobFile.text();
+          const jobAnalysis = await api.analyzeJobText(jobText, jobFile.name);
+          const resumeExtraction = await api.extractResume(resumeFile);
+
+          setLoadingStep('Evaluating requirements, hybrid scoring, and AI explanation...');
+          analysisResponse = await api.matchAndAnalyze({
+            candidate: resumeExtraction.profile,
+            job: jobAnalysis.profile,
+            candidate_id: resumeFile.name,
+            job_id: jobFile.name,
+            include_semantic: true,
+            include_score: true,
+            include_skill_gaps: true,
+            include_explanation: true,
+          });
+        } else {
+          setLoadingStep('Running end-to-end extraction, matching, and scoring pipeline...');
+          analysisResponse = await api.matchFromFiles({
+            resumeFile,
+            jobFile,
+            includeSemantic: true,
+            includeScore: true,
+            includeSkillGaps: true,
+            includeExplanation: true,
+          });
+        }
       } else if (activeJob) {
         setLoadingStep('Extracting structured candidate profile from resume...');
         const resumeExtraction = await api.extractResume(resumeFile);
